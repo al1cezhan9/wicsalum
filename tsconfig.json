@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "module": "esnext",       // or "es2020"
+    "target": "es2020",       // modern JS target
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", ".env.d.ts"]
+}
