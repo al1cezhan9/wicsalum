@@ -6,11 +6,23 @@ export default function LoginCallback() {
 
   useEffect(() => {
     const handleLoginCallback = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      // handle OTP token exchange from URL hash
+      const { data: { session: urlSession }, error: urlError } = await supabase.auth.getSession();
 
-      if (error) {
-        setMessage(`Error: ${error.message}`);
+      if (urlError) {
+        setMessage(`Error: ${urlError.message}`);
         return;
+      }
+
+      // if we have a session from URL, use it; otherwise try to get existing session
+      let session = urlSession;
+      if (!session) {
+        const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          setMessage(`Error: ${sessionError.message}`);
+          return;
+        }
+        session = existingSession;
       }
 
       if (!session?.user) {

@@ -1,18 +1,50 @@
 import React, { useState } from 'react';
-// sends a magic link to the email
-// frontend domain check prevents most invalid attempts (not foolproof though)
+import { supabase } from '../lib/supabaseClient';
+
+// frontend domain check prevents most invalid attempts 
+// (not foolproof though, set integrity constraint in supabase)
+// no that we are going to have crazy cyber attackers LOL
 
 const SignupPage: React.FC = () => {
   const [email, setEmail] = useState<string>('');
   const [message, setMessage] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!email) {
       setMessage('Please enter your email.');
-    } else if (email.endsWith('@columbia.edu') || email.endsWith('@barnard.edu')) {
-      setMessage('Success! Your .edu email is valid.');
-    } else {
+      return;
+    }
+
+    // validate email domain
+    if (!email.endsWith('@columbia.edu') && !email.endsWith('@barnard.edu')) {
       setMessage('Please enter a valid @columbia.edu or @barnard.edu email.');
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+
+    try {
+      // sends the magic link via Supabase
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/callback`,
+        },
+      });
+
+      if (error) {
+        setMessage(`Error: ${error.message}`);
+        setLoading(false);
+        return;
+      }
+
+      setMessage('Success! Check your email for the magic link to verify your account.');
+      setLoading(false);
+    } catch (err) {
+      setMessage('An unexpected error occurred. Please try again.');
+      setLoading(false);
     }
   };
 
@@ -27,8 +59,9 @@ const SignupPage: React.FC = () => {
       />
       <button
         onClick={handleSignup}
+        disabled={loading}
       >
-        Sign Up
+        {loading ? 'Sending...' : 'Sign Up'}
       </button>
       {message && (
         <p style={{ color: message.startsWith('Success') ? 'green' : 'red' }}>
