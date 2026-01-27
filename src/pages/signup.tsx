@@ -14,7 +14,7 @@ const SignupPage: React.FC = () => {
     }
 
     // validate email domain
-    if (!email.endsWith('@columbia.edu') && !email.endsWith('@barnard.edu')) {
+    if (!email.endsWith('@columbia.edu') && !email.endsWith('@barnard.edu') && !email.endsWith('@alum.barnard.edu') && !email.endsWith('@caa.columbia.edu')) {
       setMessage('Please enter a valid @columbia.edu or @barnard.edu email.');
       return;
     }
