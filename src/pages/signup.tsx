@@ -71,7 +71,7 @@ const SignupPage: React.FC = () => {
                 required
               />
               <p className="mt-1 text-xs text-gray-500">
-                @columbia.edu or @barnard.edu email required
+                @columbia.edu, @barnard.edu, @alum.barnard.edu, or @caa.columbia.edu email required
               </p>
             </div>
 
