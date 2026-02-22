@@ -8,12 +8,17 @@ type RegistrationStep = 'verification' | 'profile' | 'confirmation';
 interface ProfileFormData {
   name: string;
   graduation_year: string;
+  cu_email: string;
   current_company: string;
   job_title: string;
   current_city: string;
   bio: string;
   email: string;
   linkedin_url: string;
+  sector: string;
+  sector_other: string;
+  member_status: string;
+  profile_picture_url: string;
 }
 
 const RegisterPage: React.FC = () => {
@@ -22,7 +27,10 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [graduationYear, setGraduationYear] = useState<string>('');
+  const [cuEmail, setCuEmail] = useState<string>('');
   const [isAlumni, setIsAlumni] = useState(false);
+  const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [profilePicPreview, setProfilePicPreview] = useState<string>('');
   const [formData, setFormData] = useState<ProfileFormData>({
     name: '',
     graduation_year: '',
@@ -31,7 +39,12 @@ const RegisterPage: React.FC = () => {
     current_city: '',
     bio: '',
     email: '',
+    cu_email: '',
     linkedin_url: '',
+    sector: '',
+    sector_other: '',
+    member_status: '',
+    profile_picture_url: '',
   });
 
   useEffect(() => {
@@ -81,6 +94,50 @@ const RegisterPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file (JPEG, PNG, etc.).');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Profile picture must be less than 5MB.');
+      return;
+    }
+
+    setProfilePicFile(file);
+    setProfilePicPreview(URL.createObjectURL(file));
+    setError('');
+  };
+
+  const uploadProfilePicture = async (userId: string): Promise<string | null> => {
+    if (!profilePicFile) return null;
+
+    const fileExt = profilePicFile.name.split('.').pop();
+    const filePath = `${userId}/profile.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('profile-pictures')
+      .upload(filePath, profilePicFile, { upsert: true });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      setError(`Upload error: ${uploadError.message}`);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('profile-pictures')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
 
   const validateProfileForm = (): boolean => {
     if (!formData.name.trim()) {
@@ -106,6 +163,18 @@ const RegisterPage: React.FC = () => {
     // At least one contact method should be provided
     if (!formData.email.trim() && !formData.linkedin_url.trim()) {
       setError('Please provide at least one contact method (email or LinkedIn).');
+      return false;
+    }
+    if (!formData.sector) {
+      setError('Please select a sector.');
+      return false;
+    }
+    if (formData.sector === 'other' && !formData.sector_other.trim()) {
+      setError('Please describe your sector.');
+      return false;
+    }
+    if (!formData.member_status) {
+      setError('Please select whether you are an alumni or current student.');
       return false;
     }
     return true;
@@ -156,6 +225,19 @@ const RegisterPage: React.FC = () => {
         }
       }
 
+      // Upload profile picture if provided
+      let profilePictureUrl: string | null = null;
+      if (profilePicFile) {
+        profilePictureUrl = await uploadProfilePicture(user.id);
+        if (!profilePictureUrl) {
+          setError('Failed to upload profile picture. Please try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      const sectorValue = formData.sector === 'other' ? formData.sector_other.trim() : formData.sector;
+
       const { data, error: insertError } = await supabase
         .from('profiles')
         .insert({
@@ -168,6 +250,9 @@ const RegisterPage: React.FC = () => {
           bio: formData.bio.trim(),
           email: formData.email.trim() || null,
           linkedin_url: formData.linkedin_url.trim() || null,
+          sector: sectorValue,
+          member_status: formData.member_status,
+          profile_picture_url: profilePictureUrl,
         })
         .select()
         .single();
@@ -230,6 +315,20 @@ const RegisterPage: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label htmlFor="cu_email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Columbia/Barnard student or alum email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="cu_email"
+                  value={cuEmail}
+                  onChange={(e) => setCuEmail(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+
               <div className="flex items-start">
                 <input
                   type="checkbox"
@@ -240,7 +339,7 @@ const RegisterPage: React.FC = () => {
                   required
                 />
                 <label htmlFor="is_alumni" className="ml-2 text-sm text-gray-700">
-                  I confirm that I am a Columbia Women in CS alumna <span className="text-red-500">*</span>
+                  I confirm that I am a Columbia Women in CS alum or current student <span className="text-red-500">*</span>
                 </label>
               </div>
 
@@ -315,8 +414,9 @@ const RegisterPage: React.FC = () => {
 
               <div>
                 <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
-                  Brief Bio (2-3 sentences, max 500 characters) <span className="text-red-500">*</span>
+                  Brief Bio (2-3 sentences, max 500 characters)<span className="text-red-500">*</span>
                 </label>
+                Suggestions: other education, past work experience, interests, hobbies, other preferred methods of contact
                 <textarea
                   id="bio"
                   value={formData.bio}
@@ -363,6 +463,109 @@ const RegisterPage: React.FC = () => {
                 </p>
               </div>
 
+              {/* Sector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sector <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  {['Industry', 'Academia'].map((option) => (
+                    <label key={option} className="flex items-center">
+                      <input
+                        type="radio"
+                        name="sector"
+                        value={option.toLowerCase()}
+                        checked={formData.sector === option.toLowerCase()}
+                        onChange={(e) => {
+                          handleProfileChange('sector', e.target.value);
+                          handleProfileChange('sector_other', '');
+                        }}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{option}</span>
+                    </label>
+                  ))}
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="sector"
+                      value="other"
+                      checked={formData.sector === 'other'}
+                      onChange={(e) => handleProfileChange('sector', e.target.value)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Self-Describe</span>
+                  </label>
+                  {formData.sector === 'other' && (
+                    <input
+                      type="text"
+                      value={formData.sector_other}
+                      onChange={(e) => handleProfileChange('sector_other', e.target.value)}
+                      className="ml-6 w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Please describe your sector"
+                      required
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Member Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'alumni', label: 'Alumni' },
+                    { value: 'current_student', label: 'Current Student' },
+                  ].map((option) => (
+                    <label key={option.value} className="flex items-center">
+                      <input
+                        type="radio"
+                        name="member_status"
+                        value={option.value}
+                        checked={formData.member_status === option.value}
+                        onChange={(e) => handleProfileChange('member_status', e.target.value)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Profile Picture Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profile Picture (Optional)
+                </label>
+                <div>
+                  <input
+                    type="file"
+                    id="profile_picture"
+                    accept="image/*"
+                    onChange={handleProfilePicChange}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">JPEG, PNG, or GIF. Max 5MB.</p>
+                </div>
+                <div className="mt-3">
+                  {profilePicPreview ? (
+                    <img
+                      src={profilePicPreview}
+                      alt="Profile preview"
+                      className="w-28 h-28 min-w-[7rem] min-h-[7rem] max-w-[7rem] max-h-[7rem] rounded-full object-cover border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-28 h-28 min-w-[7rem] min-h-[7rem] rounded-full bg-gray-200 flex items-center justify-center">
+                      <svg className="w-14 h-14 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex space-x-4">
                 <button
                   type="button"
@@ -387,11 +590,26 @@ const RegisterPage: React.FC = () => {
               <div className="bg-gray-50 p-6 rounded-lg">
                 <h2 className="text-xl font-semibold mb-4">Profile Preview</h2>
                 <div className="space-y-3 text-sm">
+                  {profilePicPreview && (
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src={profilePicPreview}
+                        alt="Profile"
+                        className="w-28 h-28 min-w-[7rem] min-h-[7rem] max-w-[7rem] max-h-[7rem] rounded-full object-cover border border-gray-200"
+                      />
+                    </div>
+                  )}
                   <div>
                     <span className="font-medium">Name:</span> {formData.name}
                   </div>
                   <div>
                     <span className="font-medium">Graduation Year:</span> {formData.graduation_year}
+                  </div>
+                  <div>
+                    <span className="font-medium">Status:</span> {formData.member_status === 'current_student' ? 'Current Student' : 'Alumni'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Sector:</span> {formData.sector === 'other' ? formData.sector_other : formData.sector.charAt(0).toUpperCase() + formData.sector.slice(1)}
                   </div>
                   <div>
                     <span className="font-medium">Current Company:</span> {formData.current_company}
@@ -407,8 +625,10 @@ const RegisterPage: React.FC = () => {
                   {(formData.email || formData.linkedin_url) && (
                     <div>
                       <span className="font-medium">Contact:</span>
-                      {formData.email && <span className="ml-2">Email: {formData.email}</span>}
-                      {formData.linkedin_url && <span className="ml-2">LinkedIn: {formData.linkedin_url}</span>}
+                      <div className="mt-1 space-y-1">
+                        {formData.email && <div>Email: {formData.email}</div>}
+                        {formData.linkedin_url && <div>LinkedIn: {formData.linkedin_url}</div>}
+                      </div>
                     </div>
                   )}
                 </div>
