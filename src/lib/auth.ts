@@ -12,6 +12,9 @@ export interface UserProfile {
   bio: string;
   email?: string;
   linkedin_url?: string;
+  sector?: string;
+  member_status?: string;
+  profile_picture_url?: string;
   created_at: string;
   updated_at: string;
 }
