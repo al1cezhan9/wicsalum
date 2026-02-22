@@ -100,7 +100,7 @@ const SignupPage: React.FC = () => {
           </button>
 
           <div className="text-center mb-8">
-            <p>Please use person email (not a Barnard/Columbia email)</p>
+            <p>Please use personal email (not a Barnard/Columbia email)</p>
           </div>
 
           {message && (

@@ -8,6 +8,7 @@ type RegistrationStep = 'verification' | 'profile' | 'confirmation';
 interface ProfileFormData {
   name: string;
   graduation_year: string;
+  cu_email: string;
   current_company: string;
   job_title: string;
   current_city: string;
@@ -22,6 +23,7 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [graduationYear, setGraduationYear] = useState<string>('');
+  const [cuEmail, setCuEmail] = useState<string>('');
   const [isAlumni, setIsAlumni] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({
     name: '',
@@ -31,6 +33,7 @@ const RegisterPage: React.FC = () => {
     current_city: '',
     bio: '',
     email: '',
+    cu_email: '',
     linkedin_url: '',
   });
 
@@ -230,6 +233,20 @@ const RegisterPage: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label htmlFor="cu_email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Columbia/Barnard student or alum email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="cu_email"
+                  value={cuEmail}
+                  onChange={(e) => setCuEmail(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+
               <div className="flex items-start">
                 <input
                   type="checkbox"
@@ -240,7 +257,7 @@ const RegisterPage: React.FC = () => {
                   required
                 />
                 <label htmlFor="is_alumni" className="ml-2 text-sm text-gray-700">
-                  I confirm that I am a Columbia Women in CS alumna <span className="text-red-500">*</span>
+                  I confirm that I am a Columbia Women in CS alum or current student <span className="text-red-500">*</span>
                 </label>
               </div>
 
