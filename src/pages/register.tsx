@@ -550,18 +550,12 @@ const RegisterPage: React.FC = () => {
                   <p className="mt-1 text-xs text-gray-500">JPEG, PNG, or GIF. Max 5MB.</p>
                 </div>
                 <div className="mt-3">
-                  {profilePicPreview ? (
+                  {profilePicPreview && (
                     <img
                       src={profilePicPreview}
                       alt="Profile preview"
                       className="w-28 h-28 min-w-[7rem] min-h-[7rem] max-w-[7rem] max-h-[7rem] rounded-full object-cover border border-gray-200"
                     />
-                  ) : (
-                    <div className="w-28 h-28 min-w-[7rem] min-h-[7rem] rounded-full bg-gray-200 flex items-center justify-center">
-                      <svg className="w-14 h-14 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
                   )}
                 </div>
               </div>
