@@ -18,6 +18,7 @@ interface ProfileFormData {
   sector: string;
   sector_other: string;
   member_status: string;
+  profile_picture_url: string;
 }
 
 const RegisterPage: React.FC = () => {
@@ -28,6 +29,8 @@ const RegisterPage: React.FC = () => {
   const [graduationYear, setGraduationYear] = useState<string>('');
   const [cuEmail, setCuEmail] = useState<string>('');
   const [isAlumni, setIsAlumni] = useState(false);
+  const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [profilePicPreview, setProfilePicPreview] = useState<string>('');
   const [formData, setFormData] = useState<ProfileFormData>({
     name: '',
     graduation_year: '',
@@ -41,6 +44,7 @@ const RegisterPage: React.FC = () => {
     sector: '',
     sector_other: '',
     member_status: '',
+    profile_picture_url: '',
   });
 
   useEffect(() => {
@@ -88,6 +92,50 @@ const RegisterPage: React.FC = () => {
 
   const handleProfileChange = (field: keyof ProfileFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload an image file (JPEG, PNG, etc.).');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Profile picture must be less than 5MB.');
+      return;
+    }
+
+    setProfilePicFile(file);
+    setProfilePicPreview(URL.createObjectURL(file));
+    setError('');
+  };
+
+  const uploadProfilePicture = async (userId: string): Promise<string | null> => {
+    if (!profilePicFile) return null;
+
+    const fileExt = profilePicFile.name.split('.').pop();
+    const filePath = `${userId}/profile.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('profile-pictures')
+      .upload(filePath, profilePicFile, { upsert: true });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      setError(`Upload error: ${uploadError.message}`);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('profile-pictures')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   };
 
 
@@ -177,6 +225,17 @@ const RegisterPage: React.FC = () => {
         }
       }
 
+      // Upload profile picture if provided
+      let profilePictureUrl: string | null = null;
+      if (profilePicFile) {
+        profilePictureUrl = await uploadProfilePicture(user.id);
+        if (!profilePictureUrl) {
+          setError('Failed to upload profile picture. Please try again.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const sectorValue = formData.sector === 'other' ? formData.sector_other.trim() : formData.sector;
 
       const { data, error: insertError } = await supabase
@@ -193,6 +252,7 @@ const RegisterPage: React.FC = () => {
           linkedin_url: formData.linkedin_url.trim() || null,
           sector: sectorValue,
           member_status: formData.member_status,
+          profile_picture_url: profilePictureUrl,
         })
         .select()
         .single();
@@ -474,6 +534,32 @@ const RegisterPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Profile Picture Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profile Picture (Optional)
+                </label>
+                <div>
+                  <input
+                    type="file"
+                    id="profile_picture"
+                    accept="image/*"
+                    onChange={handleProfilePicChange}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">JPEG, PNG, or GIF. Max 5MB.</p>
+                </div>
+                <div className="mt-3">
+                  {profilePicPreview && (
+                    <img
+                      src={profilePicPreview}
+                      alt="Profile preview"
+                      className="w-28 h-28 min-w-[7rem] min-h-[7rem] max-w-[7rem] max-h-[7rem] rounded-full object-cover border border-gray-200"
+                    />
+                  )}
+                </div>
+              </div>
+
               <div className="flex space-x-4">
                 <button
                   type="button"
@@ -498,6 +584,15 @@ const RegisterPage: React.FC = () => {
               <div className="bg-gray-50 p-6 rounded-lg">
                 <h2 className="text-xl font-semibold mb-4">Profile Preview</h2>
                 <div className="space-y-3 text-sm">
+                  {profilePicPreview && (
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src={profilePicPreview}
+                        alt="Profile"
+                        className="w-16 h-16 rounded-full object-cover border border-gray-200"
+                      />
+                    </div>
+                  )}
                   <div>
                     <span className="font-medium">Name:</span> {formData.name}
                   </div>
