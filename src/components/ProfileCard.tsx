@@ -35,6 +35,19 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
         )}
       </div>
 
+      {profile.tags && profile.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-4">
+          {profile.tags.map(tag => (
+            <span
+              key={tag}
+              className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="mb-4">
         <p className="text-sm text-gray-700">
           {bioExpanded ? profile.bio : bioExcerpt}

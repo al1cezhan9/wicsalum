@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { getCurrentUser, getUserProfile, UserProfile } from '../lib/auth';
+import { getCurrentUser, getUserProfile } from '../lib/auth';
+import TagSelector from '../components/TagSelector';
 
 type RegistrationStep = 'verification' | 'profile' | 'confirmation';
 
@@ -29,6 +30,7 @@ const RegisterPage: React.FC = () => {
   const [memberRole, setMemberRole] = useState<'alumni' | 'current_student' | ''>('');
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string>('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [formData, setFormData] = useState<ProfileFormData>({
     name: '',
     graduation_year: '',
@@ -259,6 +261,7 @@ const RegisterPage: React.FC = () => {
           email: formData.email.trim() || null,
           linkedin_url: formData.linkedin_url.trim() || null,
           sector: sectorValue,
+          tags: selectedTags,
           profile_picture_url: profilePictureUrl,
         })
         .select()
@@ -502,6 +505,9 @@ const RegisterPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Tags */}
+              <TagSelector selected={selectedTags} onChange={setSelectedTags} />
+
               {/* Member Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -609,6 +615,16 @@ const RegisterPage: React.FC = () => {
                     <span className="font-medium">Bio:</span>
                     <p className="mt-1 text-gray-700">{formData.bio}</p>
                   </div>
+                  {selectedTags.length > 0 && (
+                    <div>
+                      <span className="font-medium">Tags:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {selectedTags.map(tag => (
+                          <span key={tag} className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {(formData.email || formData.linkedin_url) && (
                     <div>
                       <span className="font-medium">Contact:</span>
