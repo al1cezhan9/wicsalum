@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/alicezhang/Downloads/CS/wicsalum -maxdepth 1 -name README* -o -name CLAUDE* -o -name .cursorrules -o -name .github/copilot-instructions.md)"
+    ]
+  }
+}
