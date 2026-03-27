@@ -12,6 +12,7 @@ const DirectoryPage: React.FC = () => {
   const [filterCompany, setFilterCompany] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterCity, setFilterCity] = useState('');
+  const [filterSector, setFilterSector] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -30,6 +31,11 @@ const DirectoryPage: React.FC = () => {
   const years = useMemo(() => {
     const unique = Array.from(new Set(profiles.map(p => p.graduation_year))).sort((a, b) => b - a);
     return unique;
+  }, [profiles]);
+
+  const sectors = useMemo(() => {
+    const unique = Array.from(new Set(profiles.map(p => p.sector).filter(Boolean)));
+    return unique.sort();
   }, [profiles]);
 
 
@@ -78,25 +84,30 @@ const DirectoryPage: React.FC = () => {
 
   const filteredProfiles = useMemo(() => {
     return profiles.filter(profile => {
-      const matchesSearch = !searchQuery || 
-        profile.name.toLowerCase().includes(searchQuery.toLowerCase());
-      
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !searchQuery ||
+        profile.name.toLowerCase().includes(q) ||
+        profile.current_company.toLowerCase().includes(q) ||
+        (profile.sector && profile.sector.toLowerCase().includes(q));
+
       const matchesCompany = !filterCompany || profile.current_company === filterCompany;
       const matchesYear = !filterYear || profile.graduation_year.toString() === filterYear;
       const matchesCity = !filterCity || profile.current_city === filterCity;
+      const matchesSector = !filterSector || profile.sector === filterSector;
 
-      return matchesSearch && matchesCompany && matchesYear && matchesCity;
+      return matchesSearch && matchesCompany && matchesYear && matchesCity && matchesSector;
     });
-  }, [profiles, searchQuery, filterCompany, filterYear, filterCity]);
+  }, [profiles, searchQuery, filterCompany, filterYear, filterCity, filterSector]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setFilterCompany('');
     setFilterYear('');
     setFilterCity('');
+    setFilterSector('');
   };
 
-  const hasActiveFilters = searchQuery || filterCompany || filterYear || filterCity;
+  const hasActiveFilters = searchQuery || filterCompany || filterYear || filterCity || filterSector;
 
   const handleSignOut = async () => {
     await signOut();
@@ -123,7 +134,7 @@ const DirectoryPage: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">WiCS Alumni Directory</h1>
               <p className="text-sm text-gray-600 mt-1">
-                Connect with {profiles.length} alumni
+                Connect with {profiles.length} members
               </p>
             </div>
             <div className="flex items-center space-x-4">
@@ -161,20 +172,20 @@ const DirectoryPage: React.FC = () => {
             {/* Search Bar */}
             <div>
               <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                Search by Name
+                Search
               </label>
               <input
                 type="text"
                 id="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search alumni..."
+                placeholder="Search by name, company, or sector..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             {/* Filter Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label htmlFor="filter-company" className="block text-sm font-medium text-gray-700 mb-2">
                   Company
@@ -226,6 +237,23 @@ const DirectoryPage: React.FC = () => {
                 </select>
               </div>
 
+              <div>
+                <label htmlFor="filter-sector" className="block text-sm font-medium text-gray-700 mb-2">
+                  Sector
+                </label>
+                <select
+                  id="filter-sector"
+                  value={filterSector}
+                  onChange={(e) => setFilterSector(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Sectors</option>
+                  {sectors.map(sector => (
+                    <option key={sector} value={sector}>{sector}</option>
+                  ))}
+                </select>
+              </div>
+
             </div>
 
             {/* Clear Filters and View Toggle */}
@@ -265,18 +293,18 @@ const DirectoryPage: React.FC = () => {
         {/* Results */}
         <div>
           <p className="text-sm text-gray-600 mb-4">
-            Showing {filteredProfiles.length} of {profiles.length} alumni
+            Showing {filteredProfiles.length} of {profiles.length} members
           </p>
 
           {filteredProfiles.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-              <p className="text-gray-500">No alumni found matching your criteria.</p>
+              <p className="text-gray-500">No members found matching your criteria.</p>
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
                   className="mt-4 text-blue-600 hover:text-blue-800"
                 >
-                  Clear filters to see all alumni
+                  Clear filters to see all members
                 </button>
               )}
             </div>

@@ -3,11 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 
+const SECTORS = [
+  'software', 'finance', 'consulting', 'healthcare', 'education',
+  'government', 'nonprofit', 'research', 'other',
+];
+
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editData, setEditData] = useState<Partial<UserProfile>>({});
 
   useEffect(() => {
     loadProfile();
@@ -27,12 +36,73 @@ const ProfilePage: React.FC = () => {
     }
 
     setProfile(userProfile);
-
-    // Check if user is admin
     const role = await getUserRole();
     setIsAdmin(role?.role === 'admin');
-
     setLoading(false);
+  };
+
+  const handleEditStart = () => {
+    if (!profile) return;
+    setEditData({
+      name: profile.name,
+      current_company: profile.current_company,
+      job_title: profile.job_title || '',
+      current_city: profile.current_city,
+      bio: profile.bio,
+      email: profile.email || '',
+      linkedin_url: profile.linkedin_url || '',
+      sector: profile.sector || '',
+    });
+    setEditError('');
+    setEditing(true);
+  };
+
+  const handleEditCancel = () => {
+    setEditing(false);
+    setEditError('');
+  };
+
+  const handleSave = async () => {
+    if (!profile) return;
+    setEditError('');
+
+    if (!editData.name?.trim()) { setEditError('Name is required.'); return; }
+    if (!editData.current_company?.trim()) { setEditError('Company is required.'); return; }
+    if (!editData.current_city?.trim()) { setEditError('City is required.'); return; }
+    if (!editData.bio?.trim()) { setEditError('Bio is required.'); return; }
+    if ((editData.bio?.length ?? 0) > 500) { setEditError('Bio must be 500 characters or less.'); return; }
+    if (!editData.email?.trim() && !editData.linkedin_url?.trim()) {
+      setEditError('Please provide at least one contact method (email or LinkedIn).');
+      return;
+    }
+
+    setSaving(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        name: editData.name!.trim(),
+        current_company: editData.current_company!.trim(),
+        job_title: editData.job_title?.trim() || null,
+        current_city: editData.current_city!.trim(),
+        bio: editData.bio!.trim(),
+        email: editData.email?.trim() || null,
+        linkedin_url: editData.linkedin_url?.trim() || null,
+        sector: editData.sector?.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', profile.id)
+      .select()
+      .single();
+
+    setSaving(false);
+
+    if (error) {
+      setEditError(`Error saving: ${error.message}`);
+      return;
+    }
+
+    setProfile(data as UserProfile);
+    setEditing(false);
   };
 
   const handleSignOut = async () => {
@@ -51,36 +121,24 @@ const ProfilePage: React.FC = () => {
     );
   }
 
-  if (!profile) {
-    return null;
-  }
+  if (!profile) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
             <div className="flex items-center space-x-4">
               {isAdmin && (
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
+                <button onClick={() => navigate('/admin')} className="text-sm text-blue-600 hover:text-blue-800 font-medium">
                   Admin Panel
                 </button>
               )}
-              <button
-                onClick={() => navigate('/directory')}
-                className="text-sm text-gray-700 hover:text-gray-900"
-              >
+              <button onClick={() => navigate('/directory')} className="text-sm text-gray-700 hover:text-gray-900">
                 Directory
               </button>
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-gray-700 hover:text-gray-900"
-              >
+              <button onClick={handleSignOut} className="text-sm text-gray-700 hover:text-gray-900">
                 Sign Out
               </button>
             </div>
@@ -89,66 +147,187 @@ const ProfilePage: React.FC = () => {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Profile Card */}
         <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
-              <p className="text-lg text-gray-600 mt-1">Class of {profile.graduation_year}</p>
-            </div>
+          {editing ? (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-gray-900">Edit Profile</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Current Company</h3>
-                <p className="text-gray-900">{profile.current_company}</p>
-                {profile.job_title && (
-                  <p className="text-gray-600 mt-1">{profile.job_title}</p>
-                )}
-              </div>
+              {editError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-800">{editError}</p>
+                </div>
+              )}
 
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-1">Location</h3>
-                <p className="text-gray-900">{profile.current_city}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={editData.name || ''}
+                  onChange={e => setEditData(d => ({ ...d, name: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
 
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Company <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={editData.current_company || ''}
+                    onChange={e => setEditData(d => ({ ...d, current_company: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Role/Title</label>
+                  <input
+                    type="text"
+                    value={editData.job_title || ''}
+                    onChange={e => setEditData(d => ({ ...d, job_title: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
 
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Bio</h3>
-              <p className="text-gray-900 whitespace-pre-wrap">{profile.bio}</p>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City/Location <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={editData.current_city || ''}
+                    onChange={e => setEditData(d => ({ ...d, current_city: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+                  <select
+                    value={editData.sector || ''}
+                    onChange={e => setEditData(d => ({ ...d, sector: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select sector</option>
+                    {SECTORS.map(s => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-            <div className="pt-6 border-t">
-              <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
-              <div className="space-y-2">
-                {profile.email && (
-                  <div className="flex items-center">
-                    <span className="text-gray-600 mr-2">Email:</span>
-                    <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">
-                      {profile.email}
-                    </a>
-                  </div>
-                )}
-                {profile.linkedin_url && (
-                  <div className="flex items-center">
-                    <span className="text-gray-600 mr-2">LinkedIn:</span>
-                    <a
-                      href={profile.linkedin_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      {profile.linkedin_url}
-                    </a>
-                  </div>
-                )}
-                {!profile.email && !profile.linkedin_url && (
-                  <p className="text-gray-500 text-sm">No contact information provided</p>
-                )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bio <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={editData.bio || ''}
+                  onChange={e => setEditData(d => ({ ...d, bio: e.target.value }))}
+                  rows={4}
+                  maxLength={500}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="mt-1 text-sm text-gray-500">{(editData.bio || '').length}/500 characters</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editData.email || ''}
+                    onChange={e => setEditData(d => ({ ...d, email: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                  <input
+                    type="url"
+                    value={editData.linkedin_url || ''}
+                    onChange={e => setEditData(d => ({ ...d, linkedin_url: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  onClick={handleEditCancel}
+                  disabled={saving}
+                  className="text-gray-700 px-6 py-2 rounded-md border border-gray-300 hover:bg-gray-50 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
+                  <p className="text-lg text-gray-600 mt-1">Class of {profile.graduation_year}</p>
+                </div>
+                <button
+                  onClick={handleEditStart}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Edit
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Current Company</h3>
+                  <p className="text-gray-900">{profile.current_company}</p>
+                  {profile.job_title && <p className="text-gray-600 mt-1">{profile.job_title}</p>}
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Location</h3>
+                  <p className="text-gray-900">{profile.current_city}</p>
+                </div>
+                {profile.sector && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Sector</h3>
+                    <p className="text-gray-900">{profile.sector.charAt(0).toUpperCase() + profile.sector.slice(1)}</p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Bio</h3>
+                <p className="text-gray-900 whitespace-pre-wrap">{profile.bio}</p>
+              </div>
+
+              <div className="pt-6 border-t">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
+                <div className="space-y-2">
+                  {profile.email && (
+                    <div className="flex items-center">
+                      <span className="text-gray-600 mr-2">Email:</span>
+                      <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">{profile.email}</a>
+                    </div>
+                  )}
+                  {profile.linkedin_url && (
+                    <div className="flex items-center">
+                      <span className="text-gray-600 mr-2">LinkedIn:</span>
+                      <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                        {profile.linkedin_url}
+                      </a>
+                    </div>
+                  )}
+                  {!profile.email && !profile.linkedin_url && (
+                    <p className="text-gray-500 text-sm">No contact information provided</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -156,4 +335,3 @@ const ProfilePage: React.FC = () => {
 };
 
 export default ProfilePage;
-

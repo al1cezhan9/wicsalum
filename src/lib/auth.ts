@@ -13,7 +13,6 @@ export interface UserProfile {
   email?: string;
   linkedin_url?: string;
   sector?: string;
-  member_status?: string;
   profile_picture_url?: string;
   created_at: string;
   updated_at: string;
@@ -22,7 +21,7 @@ export interface UserProfile {
 export interface UserRole {
   id: string;
   email: string;
-  role: 'alumni' | 'admin';
+  role: 'alumni' | 'current_student' | 'admin';
   created_at: string;
 }
 

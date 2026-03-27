@@ -30,6 +30,9 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
           )}
         </div>
         <div className="text-gray-600">{profile.current_city}</div>
+        {profile.sector && (
+          <div className="text-gray-500 text-xs">{profile.sector}</div>
+        )}
       </div>
 
       <div className="mb-4">
