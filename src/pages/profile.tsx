@@ -17,6 +17,7 @@ const ProfilePage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [editData, setEditData] = useState<Partial<UserProfile>>({});
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -103,6 +104,16 @@ const ProfilePage: React.FC = () => {
 
     setProfile(data as UserProfile);
     setEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (!profile) return;
+    setSaving(true);
+    const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
+    setSaving(false);
+    if (error) { setEditError(`Error deleting profile: ${error.message}`); return; }
+    await signOut();
+    navigate('/signup');
   };
 
   const handleSignOut = async () => {
@@ -264,6 +275,38 @@ const ProfilePage: React.FC = () => {
                 >
                   Cancel
                 </button>
+              </div>
+
+              <div className="pt-6 border-t">
+                {!confirmingDelete ? (
+                  <button
+                    onClick={() => setConfirmingDelete(true)}
+                    disabled={saving}
+                    className="text-sm text-red-600 hover:text-red-800"
+                  >
+                    Delete my profile
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-700">Are you sure? This cannot be undone. You will be signed out.</p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleDelete}
+                        disabled={saving}
+                        className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm transition disabled:opacity-50"
+                      >
+                        {saving ? 'Deleting...' : 'Yes, delete my profile'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmingDelete(false)}
+                        disabled={saving}
+                        className="text-gray-700 px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm transition disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
