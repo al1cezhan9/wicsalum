@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
+import TagSelector from '../components/TagSelector';
 import Avatar from '../components/Avatar';
 
 const SECTORS = [
@@ -18,6 +19,7 @@ const ProfilePage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [editData, setEditData] = useState<Partial<UserProfile>>({});
+  const [editTags, setEditTags] = useState<string[]>([]);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string>('');
@@ -68,6 +70,7 @@ const ProfilePage: React.FC = () => {
       linkedin_url: profile.linkedin_url || '',
       sector: profile.sector || '',
     });
+    setEditTags(profile.tags ?? []);
     setEditError('');
     setEditing(true);
   };
@@ -122,6 +125,7 @@ const ProfilePage: React.FC = () => {
         email: editData.email?.trim() || null,
         linkedin_url: editData.linkedin_url?.trim() || null,
         sector: editData.sector?.trim() || null,
+        tags: editTags,
         profile_picture_url: newPictureUrl,
         updated_at: new Date().toISOString(),
       })
@@ -293,6 +297,8 @@ const ProfilePage: React.FC = () => {
                 <p className="mt-1 text-sm text-gray-500">{(editData.bio || '').length}/500 characters</p>
               </div>
 
+              <TagSelector selected={editTags} onChange={setEditTags} />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -403,6 +409,19 @@ const ProfilePage: React.FC = () => {
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Bio</h3>
                 <p className="text-gray-900 whitespace-pre-wrap">{profile.bio}</p>
               </div>
+
+              {profile.tags && profile.tags.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Areas of Expertise / Interest</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.tags.map(tag => (
+                      <span key={tag} className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-6 border-t">
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
