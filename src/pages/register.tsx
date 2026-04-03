@@ -279,7 +279,7 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-xl p-8">
           <div className="mb-8">
@@ -547,7 +547,7 @@ const RegisterPage: React.FC = () => {
                     <img
                       src={profilePicPreview}
                       alt="Profile preview"
-                      className="w-28 h-28 min-w-[7rem] min-h-[7rem] max-w-[7rem] max-h-[7rem] rounded-full object-cover border border-gray-200"
+                      className="w-28 h-28 rounded-full object-cover border border-gray-200"
                     />
                   )}
                 </div>
