@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import TagSelector from '../components/TagSelector';
+import LocationAutocomplete from '../components/LocationAutocomplete';
 import Avatar from '../components/Avatar';
 
 const SECTORS = [
@@ -261,11 +262,9 @@ const ProfilePage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">City/Location <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
+                  <LocationAutocomplete
                     value={editData.current_city || ''}
-                    onChange={e => setEditData(d => ({ ...d, current_city: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onChange={val => setEditData(d => ({ ...d, current_city: val }))}
                   />
                 </div>
                 <div>
