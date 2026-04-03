@@ -15,13 +15,26 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
     ? profile.bio.substring(0, 150) + '...' 
     : profile.bio;
 
+  const [favorited, setFavorited] = useState(isFavorited(profile.id));
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <Avatar name={profile.name} profilePictureUrl={profile.profile_picture_url} size="sm" />
           <div>
-            <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
+            <div className="flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
+                <button
+                    onClick={() => {
+                    toggleFavorite(profile.id);
+                    setFavorited(!favorited);
+                }}
+                className="text-red-500 hover:text-red-600"
+                title={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                    {favorited ? '❤️' : '🤍'}
+                </button>
+        </div>
             <p className="text-sm text-gray-600">Class of {profile.graduation_year}</p>
           </div>
         </div>
@@ -99,7 +112,6 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
   );
 };
 
-const [favorited, setFavorited] = useState(isFavorited(profile.id));
 
 export default ProfileCard;
 
