@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import Avatar from '../components/Avatar';
 
+
 const SECTORS = [
   'software', 'finance', 'consulting', 'healthcare', 'education',
   'government', 'nonprofit', 'research', 'other',

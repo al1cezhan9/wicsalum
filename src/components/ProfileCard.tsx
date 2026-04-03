@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../lib/auth';
 import Avatar from './Avatar';
+import { toggleFavorite, isFavorited } from '../utils/favorites';
 
 interface ProfileCardProps {
   profile: UserProfile;
@@ -97,6 +98,8 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
     </div>
   );
 };
+
+const [favorited, setFavorited] = useState(isFavorited(profile.id));
 
 export default ProfileCard;
 
