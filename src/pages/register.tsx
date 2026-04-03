@@ -157,11 +157,6 @@ const RegisterPage: React.FC = () => {
       setError('Bio must be 500 characters or less.');
       return false;
     }
-    // At least one contact method should be provided
-    if (!formData.email.trim() && !formData.linkedin_url.trim()) {
-      setError('Please provide at least one contact method (email or LinkedIn).');
-      return false;
-    }
     if (!formData.sector) {
       setError('Please select a sector.');
       return false;
@@ -437,9 +432,6 @@ const RegisterPage: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="https://linkedin.com/in/yourprofile"
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  Provide at least one contact method (email or LinkedIn)
-                </p>
               </div>
 
               {/* Sector */}
