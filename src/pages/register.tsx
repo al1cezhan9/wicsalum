@@ -26,7 +26,6 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [graduationYear, setGraduationYear] = useState<string>('');
   const [isAlumni, setIsAlumni] = useState(false);
-  const [memberRole, setMemberRole] = useState<'alumni' | 'current_student' | ''>('');
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string>('');
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -169,10 +168,6 @@ const RegisterPage: React.FC = () => {
       setError('Please describe your sector.');
       return false;
     }
-    if (!memberRole) {
-      setError('Please select whether you are an alumni or current student.');
-      return false;
-    }
     return true;
   };
 
@@ -219,18 +214,6 @@ const RegisterPage: React.FC = () => {
           setLoading(false);
           return;
         }
-      }
-
-      // Update user role based on member type
-      const { error: roleError } = await supabase
-        .from('users')
-        .update({ role: memberRole })
-        .eq('id', user.id);
-
-      if (roleError) {
-        setError(`Error updating role: ${roleError.message}`);
-        setLoading(false);
-        return;
       }
 
       // Upload profile picture if provided
@@ -502,31 +485,6 @@ const RegisterPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Member Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  I am a <span className="text-red-500">*</span>
-                </label>
-                <div className="space-y-2">
-                  {[
-                    { value: 'alumni', label: 'Alumni' },
-                    { value: 'current_student', label: 'Current Student' },
-                  ].map((option) => (
-                    <label key={option.value} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="memberRole"
-                        value={option.value}
-                        checked={memberRole === option.value}
-                        onChange={(e) => setMemberRole(e.target.value as 'alumni' | 'current_student')}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
               {/* Profile Picture Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -591,9 +549,6 @@ const RegisterPage: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-medium">Graduation Year:</span> {formData.graduation_year}
-                  </div>
-                  <div>
-                    <span className="font-medium">Status:</span> {memberRole === 'current_student' ? 'Current Student' : 'Alumni'}
                   </div>
                   <div>
                     <span className="font-medium">Sector:</span> {formData.sector === 'other' ? formData.sector_other : formData.sector.charAt(0).toUpperCase() + formData.sector.slice(1)}
