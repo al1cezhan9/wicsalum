@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import ProfileCard from '../components/ProfileCard';
+import { LOCATIONS } from '../lib/locations';
 
 const DirectoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -93,7 +94,7 @@ const DirectoryPage: React.FC = () => {
 
       const matchesCompany = !filterCompany || profile.current_company === filterCompany;
       const matchesYear = !filterYear || profile.graduation_year.toString() === filterYear;
-      const matchesCity = !filterCity || profile.current_city === filterCity;
+      const matchesCity = !filterCity || profile.current_city.toLowerCase().includes(filterCity.toLowerCase());
       const matchesSector = !filterSector || profile.sector === filterSector;
       const matchesBio = !filterBio || (profile.bio && profile.bio.toLowerCase().includes(filterBio.toLowerCase()));
 
@@ -234,8 +235,8 @@ const DirectoryPage: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Cities</option>
-                  {cities.map(city => (
-                    <option key={city} value={city}>{city}</option>
+                  {[...LOCATIONS].sort().map(loc => (
+                    <option key={loc} value={loc}>{loc}</option>
                   ))}
                 </select>
               </div>

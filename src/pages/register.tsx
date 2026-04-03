@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile } from '../lib/auth';
 import TagSelector from '../components/TagSelector';
+import LocationAutocomplete from '../components/LocationAutocomplete';
 
 type RegistrationStep = 'verification' | 'profile' | 'confirmation';
 
@@ -375,13 +376,10 @@ const RegisterPage: React.FC = () => {
                 <label htmlFor="current_city" className="block text-sm font-medium text-gray-700 mb-2">
                   Current City/Location <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+                <LocationAutocomplete
                   id="current_city"
                   value={formData.current_city}
-                  onChange={(e) => handleProfileChange('current_city', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., New York, NY"
+                  onChange={(val) => handleProfileChange('current_city', val)}
                   required
                 />
               </div>
