@@ -582,7 +582,7 @@ const RegisterPage: React.FC = () => {
                       <img
                         src={profilePicPreview}
                         alt="Profile"
-                        className="w-16 h-16 rounded-full object-cover border border-gray-200"
+                        className="w-24 h-24 min-w-[6rem] min-h-[6rem] max-w-[6rem] max-h-[6rem] rounded-full object-cover border border-gray-200"
                       />
                     </div>
                   )}
