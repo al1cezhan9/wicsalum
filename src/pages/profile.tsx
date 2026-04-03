@@ -86,11 +86,6 @@ const ProfilePage: React.FC = () => {
     if (!editData.current_city?.trim()) { setEditError('City is required.'); return; }
     if (!editData.bio?.trim()) { setEditError('Bio is required.'); return; }
     if ((editData.bio?.length ?? 0) > 500) { setEditError('Bio must be 500 characters or less.'); return; }
-    if (!editData.email?.trim() && !editData.linkedin_url?.trim()) {
-      setEditError('Please provide at least one contact method (email or LinkedIn).');
-      return;
-    }
-
     setSaving(true);
 
     let newPictureUrl = profile.profile_picture_url;
@@ -397,34 +392,23 @@ const ProfilePage: React.FC = () => {
                     <p className="text-gray-900">{profile.sector.charAt(0).toUpperCase() + profile.sector.slice(1)}</p>
                   </div>
                 )}
+                {profile.email && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Email</h3>
+                    <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">{profile.email}</a>
+                  </div>
+                )}
+                {profile.linkedin_url && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">LinkedIn</h3>
+                    <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">{profile.linkedin_url}</a>
+                  </div>
+                )}
               </div>
 
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Bio</h3>
                 <p className="text-gray-900 whitespace-pre-wrap">{profile.bio}</p>
-              </div>
-
-              <div className="pt-6 border-t">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
-                <div className="space-y-2">
-                  {profile.email && (
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2">Email:</span>
-                      <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">{profile.email}</a>
-                    </div>
-                  )}
-                  {profile.linkedin_url && (
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2">LinkedIn:</span>
-                      <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                        {profile.linkedin_url}
-                      </a>
-                    </div>
-                  )}
-                  {!profile.email && !profile.linkedin_url && (
-                    <p className="text-gray-500 text-sm">No contact information provided</p>
-                  )}
-                </div>
               </div>
             </div>
           )}
