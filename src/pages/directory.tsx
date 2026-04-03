@@ -13,6 +13,7 @@ const DirectoryPage: React.FC = () => {
   const [filterYear, setFilterYear] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [filterSector, setFilterSector] = useState('');
+  const [filterBio, setFilterBio] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -94,10 +95,11 @@ const DirectoryPage: React.FC = () => {
       const matchesYear = !filterYear || profile.graduation_year.toString() === filterYear;
       const matchesCity = !filterCity || profile.current_city === filterCity;
       const matchesSector = !filterSector || profile.sector === filterSector;
+      const matchesBio = !filterBio || (profile.bio && profile.bio.toLowerCase().includes(filterBio.toLowerCase()));
 
-      return matchesSearch && matchesCompany && matchesYear && matchesCity && matchesSector;
+      return matchesSearch && matchesCompany && matchesYear && matchesCity && matchesSector && matchesBio;
     });
-  }, [profiles, searchQuery, filterCompany, filterYear, filterCity, filterSector]);
+  }, [profiles, searchQuery, filterCompany, filterYear, filterCity, filterSector, filterBio]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -105,9 +107,10 @@ const DirectoryPage: React.FC = () => {
     setFilterYear('');
     setFilterCity('');
     setFilterSector('');
+    setFilterBio('');
   };
 
-  const hasActiveFilters = searchQuery || filterCompany || filterYear || filterCity || filterSector;
+  const hasActiveFilters = searchQuery || filterCompany || filterYear || filterCity || filterSector || filterBio;
 
   const handleSignOut = async () => {
     await signOut();
@@ -254,6 +257,21 @@ const DirectoryPage: React.FC = () => {
                 </select>
               </div>
 
+            </div>
+
+            {/* Bio Keyword Filter */}
+            <div>
+              <label htmlFor="filter-bio" className="block text-sm font-medium text-gray-700 mb-2">
+                Bio Keyword
+              </label>
+              <input
+                type="text"
+                id="filter-bio"
+                value={filterBio}
+                onChange={(e) => setFilterBio(e.target.value)}
+                placeholder="Search by bio keyword or phrase..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
 
             {/* Clear Filters and View Toggle */}

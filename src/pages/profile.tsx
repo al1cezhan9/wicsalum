@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import TagSelector from '../components/TagSelector';
+import Avatar from '../components/Avatar';
 
 const SECTORS = [
   'software', 'finance', 'consulting', 'healthcare', 'education',
@@ -20,6 +21,8 @@ const ProfilePage: React.FC = () => {
   const [editData, setEditData] = useState<Partial<UserProfile>>({});
   const [editTags, setEditTags] = useState<string[]>([]);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [profilePicPreview, setProfilePicPreview] = useState<string>('');
 
   useEffect(() => {
     loadProfile();
@@ -44,8 +47,19 @@ const ProfilePage: React.FC = () => {
     setLoading(false);
   };
 
+  const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setEditError('Please upload an image file.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setEditError('Image must be less than 5MB.'); return; }
+    setProfilePicFile(file);
+    setProfilePicPreview(URL.createObjectURL(file));
+  };
+
   const handleEditStart = () => {
     if (!profile) return;
+    setProfilePicFile(null);
+    setProfilePicPreview('');
     setEditData({
       name: profile.name,
       current_company: profile.current_company,
@@ -81,6 +95,25 @@ const ProfilePage: React.FC = () => {
     }
 
     setSaving(true);
+
+    let newPictureUrl = profile.profile_picture_url;
+    if (profilePicFile) {
+      const user = await getCurrentUser();
+      if (user) {
+        const fileExt = profilePicFile.name.split('.').pop();
+        const filePath = `${user.id}/profile.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('profile-pictures')
+          .upload(filePath, profilePicFile, { upsert: true });
+        if (uploadError) {
+          setEditError(`Upload error: ${uploadError.message}`);
+          setSaving(false);
+          return;
+        }
+        newPictureUrl = supabase.storage.from('profile-pictures').getPublicUrl(filePath).data.publicUrl;
+      }
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .update({
@@ -93,6 +126,7 @@ const ProfilePage: React.FC = () => {
         linkedin_url: editData.linkedin_url?.trim() || null,
         sector: editData.sector?.trim() || null,
         tags: editTags,
+        profile_picture_url: newPictureUrl,
         updated_at: new Date().toISOString(),
       })
       .eq('id', profile.id)
@@ -166,6 +200,26 @@ const ProfilePage: React.FC = () => {
           {editing ? (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-gray-900">Edit Profile</h2>
+
+              <div className="flex items-center gap-4">
+                <Avatar
+                  name={profile.name}
+                  profilePictureUrl={profilePicPreview || profile.profile_picture_url}
+                  size="lg"
+                />
+                <div>
+                  <label className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    {profile.profile_picture_url || profilePicPreview ? 'Change photo' : 'Upload photo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePicChange}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">JPEG, PNG. Max 5MB.</p>
+                </div>
+              </div>
 
               {editError && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-md">
@@ -318,9 +372,12 @@ const ProfilePage: React.FC = () => {
           ) : (
             <div className="space-y-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
-                  <p className="text-lg text-gray-600 mt-1">Class of {profile.graduation_year}</p>
+                <div className="flex items-center gap-4">
+                  <Avatar name={profile.name} profilePictureUrl={profile.profile_picture_url} size="lg" />
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
+                    <p className="text-lg text-gray-600 mt-1">Class of {profile.graduation_year}</p>
+                  </div>
                 </div>
                 <button
                   onClick={handleEditStart}

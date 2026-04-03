@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../lib/auth';
+import Avatar from './Avatar';
 
 interface ProfileCardProps {
   profile: UserProfile;
@@ -16,9 +17,12 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
       <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
-          <p className="text-sm text-gray-600">Class of {profile.graduation_year}</p>
+        <div className="flex items-center gap-3">
+          <Avatar name={profile.name} profilePictureUrl={profile.profile_picture_url} size="sm" />
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
+            <p className="text-sm text-gray-600">Class of {profile.graduation_year}</p>
+          </div>
         </div>
       </div>
 
