@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-const PRESET_TAGS = [
+export const PRESET_TAGS = [
   'Machine Learning', 'AI / LLMs', 'Software Engineering', 'Web Development',
   'Mobile Development', 'Data Science', 'Cybersecurity', 'Systems / Infrastructure',
   'Distributed Systems', 'Computer Vision', 'NLP', 'Robotics',
