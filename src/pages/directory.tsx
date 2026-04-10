@@ -79,7 +79,13 @@ const DirectoryPage: React.FC = () => {
   const filteredProfiles = useMemo(() => {
     return profiles.filter(profile => {
       const matchesSearch = !searchQuery || 
-        profile.name.toLowerCase().includes(searchQuery.toLowerCase());
+      [
+        profile.name,
+        profile.bio,
+        profile.job_title,
+        profile.current_company,
+        profile.current_city,
+      ].some(field => field?.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesCompany = !filterCompany || profile.current_company === filterCompany;
       const matchesYear = !filterYear || profile.graduation_year.toString() === filterYear;

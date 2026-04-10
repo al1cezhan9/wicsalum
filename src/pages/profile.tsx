@@ -8,6 +8,7 @@ const ProfilePage: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEditing, setIsEditing] = useState(false); // New state for edit mode
 
   useEffect(() => {
     loadProfile();
@@ -38,6 +39,35 @@ const ProfilePage: React.FC = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate('/signup');
+  };
+
+  const handleProfileUpdate = async (updatedData: any) => {
+    const user = await getCurrentUser();
+    if (!user) {
+      alert('You must be logged in to update your profile.');
+      return;
+    }
+
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
+      name: updatedData.name,
+      graduation_year: parseInt(updatedData.graduation_year),
+      current_company: updatedData.current_company,
+      job_title: updatedData.job_title,
+      current_city: updatedData.current_city,
+      bio: updatedData.bio,
+      linkedin_url: updatedData.linkedin_url,
+      email: updatedData.email,
+      updated_at: new Date(),
+    });
+
+    if (error) {
+      console.error('Error updating profile:', error);
+      alert('Failed to update profile. Please try again.');
+    } else {
+      alert('Profile updated successfully!');
+      loadProfile();
+    }
   };
 
   if (loading) {
@@ -77,6 +107,30 @@ const ProfilePage: React.FC = () => {
               >
                 Directory
               </button>
+              <div className ='flex items-center space-x-2'>
+                {isEditing ? (
+                  <>
+                  <button 
+                    onClick={() => setIsEditing(false)}
+                    className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => handleProfileUpdate(profile)} 
+                className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+              >
+                Save Changes
+                </button>
+                </>
+                ) : (
+                  <button
+                   onClick={() => setIsEditing(true)}
+                   className="px-4 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium">
+                    Edit Profile
+              </button>
+                )}
+              </div>
               <button
                 onClick={handleSignOut}
                 className="text-sm text-gray-700 hover:text-gray-900"
@@ -87,14 +141,18 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
       </header>
-
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* Profile Card */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <div className="space-y-6">
-            <div>
+            <div className="mb-2">
+              {isEditing ? (
+                <input className="text3x1 font-bold border rounded p-1 w-full text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                 value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value } as UserProfile)} />
+              ) : (
               <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
+              )}
               <p className="text-lg text-gray-600 mt-1">Class of {profile.graduation_year}</p>
             </div>
 
@@ -114,9 +172,17 @@ const ProfilePage: React.FC = () => {
 
             </div>
 
-            <div>
+            <div className="mt-6">
               <h3 className="text-sm font-medium text-gray-500 mb-2">Bio</h3>
-              <p className="text-gray-900 whitespace-pre-wrap">{profile.bio}</p>
+              {isEditing ? (
+                <textarea
+                  className="border p-2 rounded w-full text-gray-900 h-32 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={profile.bio || ''}
+                  onChange={(e) => setProfile({ ...profile, bio: e.target.value } as UserProfile)}
+                />
+              ) : (
+              <p className="text-gray-900 whitespace-pre-wrap">{profile?.bio || 'No bio available.'}</p>
+              )}
             </div>
 
             <div className="pt-6 border-t">
