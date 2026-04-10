@@ -96,7 +96,7 @@ const ProfilePage: React.FC = () => {
       const user = await getCurrentUser();
       if (user) {
         const fileExt = profilePicFile.name.split('.').pop();
-        const filePath = `${user.id}/profile.${fileExt}`;
+        const filePath = `${user.id}/profile_${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('profile-pictures')
           .upload(filePath, profilePicFile, { upsert: true });
