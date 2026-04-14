@@ -157,6 +157,10 @@ const RegisterPage: React.FC = () => {
       setError('Bio must be 500 characters or less.');
       return false;
     }
+    if (!formData.linkedin_url.trim()) {
+      setError('LinkedIn URL is required.');
+      return false;
+    }
     if (!formData.sector) {
       setError('Please select a sector.');
       return false;
@@ -422,7 +426,7 @@ const RegisterPage: React.FC = () => {
 
               <div>
                 <label htmlFor="linkedin_url" className="block text-sm font-medium text-gray-700 mb-2">
-                  LinkedIn URL (Optional)
+                  LinkedIn URL <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="url"
@@ -431,6 +435,7 @@ const RegisterPage: React.FC = () => {
                   onChange={(e) => handleProfileChange('linkedin_url', e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="https://linkedin.com/in/yourprofile"
+                  required
                 />
               </div>
 
