@@ -142,11 +142,14 @@ const ProfilePage: React.FC = () => {
   const handleDelete = async () => {
     if (!profile) return;
     setSaving(true);
-    const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
-    setSaving(false);
-    if (error) { setEditError(`Error deleting profile: ${error.message}`); return; }
-    await signOut();
-    navigate('/signup');
+    const user = await getCurrentUser();
+    if (user) {
+        const { error } = await supabase.from('users').delete().eq('id', user.id);
+        setSaving(false);
+        if (error) { setEditError(`Error deleting profile: ${error.message}`); return; }
+        await signOut();
+        navigate('/signup');
+    }
   };
 
   const handleSignOut = async () => {
