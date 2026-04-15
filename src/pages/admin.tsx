@@ -57,12 +57,9 @@ const AdminPage: React.FC = () => {
       setAllProfiles(profilesList);
 
       // Calculate stats
-      const recent = profilesList.filter(p => {
-        const createdAt = new Date(p.created_at);
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        return createdAt >= weekAgo;
-      }).length;
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const recent = profilesList.filter(p => new Date(p.created_at) >= weekAgo).length;
 
       setStats({
         totalAlumni: profilesList.length,
@@ -183,7 +180,7 @@ const AdminPage: React.FC = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Alumni</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Members</h3>
             <p className="text-3xl font-bold text-gray-900">{stats.totalAlumni}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
@@ -207,21 +204,15 @@ const AdminPage: React.FC = () => {
         </div>
 
         {/* Recent Registrations */}
-        {allProfiles.filter(p => {
-          const createdAt = new Date(p.created_at);
-          const weekAgo = new Date();
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return createdAt >= weekAgo;
-        }).length > 0 && (
+        {stats.recentRegistrations > 0 && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Registrations</h3>
             <div className="space-y-3">
               {allProfiles
                 .filter(p => {
-                  const createdAt = new Date(p.created_at);
                   const weekAgo = new Date();
                   weekAgo.setDate(weekAgo.getDate() - 7);
-                  return createdAt >= weekAgo;
+                  return new Date(p.created_at) >= weekAgo;
                 })
                 .slice(0, 5)
                 .map(profile => (

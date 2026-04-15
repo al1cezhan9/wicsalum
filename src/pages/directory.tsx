@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import ProfileCard from '../components/ProfileCard';
+import { LOCATIONS } from '../lib/locations';
+import { PRESET_TAGS } from '../components/TagSelector';
 
 const DirectoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +14,13 @@ const DirectoryPage: React.FC = () => {
   const [filterCompany, setFilterCompany] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterCity, setFilterCity] = useState('');
+  const [filterSector, setFilterSector] = useState('');
+  const [filterBio, setFilterBio] = useState('');
+  const [filterInterests, setFilterInterests] = useState<string[]>([]);
+  const [interestInput, setInterestInput] = useState('');
+  const [interestOpen, setInterestOpen] = useState(false);
+  const [interestActiveIndex, setInterestActiveIndex] = useState(-1);
+  const interestContainerRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -32,6 +41,32 @@ const DirectoryPage: React.FC = () => {
     return unique;
   }, [profiles]);
 
+  const sectors = useMemo(() => {
+    const unique = Array.from(new Set(profiles.map(p => p.sector).filter(Boolean)));
+    return unique.sort();
+  }, [profiles]);
+
+
+  const allInterests = useMemo(() => {
+    const profileTags = Array.from(new Set(profiles.flatMap(p => p.tags ?? [])));
+    return Array.from(new Set([...PRESET_TAGS, ...profileTags])).sort();
+  }, [profiles]);
+
+  const interestSuggestions = useMemo(() => {
+    return allInterests.filter(t =>
+      t.toLowerCase().includes(interestInput.toLowerCase()) && !filterInterests.includes(t)
+    );
+  }, [allInterests, interestInput, filterInterests]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (interestContainerRef.current && !interestContainerRef.current.contains(e.target as Node)) {
+        setInterestOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     checkAuthAndLoadProfiles();
@@ -78,6 +113,7 @@ const DirectoryPage: React.FC = () => {
 
   const filteredProfiles = useMemo(() => {
     return profiles.filter(profile => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery || 
       [
         profile.name,
@@ -85,24 +121,36 @@ const DirectoryPage: React.FC = () => {
         profile.job_title,
         profile.current_company,
         profile.current_city,
-      ].some(field => field?.toLowerCase().includes(searchQuery.toLowerCase()));
+        profile.sector
+      ].some(field => field?.toLowerCase().includes(q));
       
+      const matchesCompany = !filterCompany ||
+        profile.current_company === filterCompany; 
+
+ main
       const matchesCompany = !filterCompany || profile.current_company === filterCompany;
       const matchesYear = !filterYear || profile.graduation_year.toString() === filterYear;
-      const matchesCity = !filterCity || profile.current_city === filterCity;
+      const matchesCity = !filterCity || profile.current_city.toLowerCase().includes(filterCity.toLowerCase());
+      const matchesSector = !filterSector || profile.sector === filterSector;
+      const matchesBio = !filterBio || (profile.bio && profile.bio.toLowerCase().includes(filterBio.toLowerCase()));
+      const matchesInterest = filterInterests.length === 0 || filterInterests.some(tag => (profile.tags ?? []).includes(tag));
 
-      return matchesSearch && matchesCompany && matchesYear && matchesCity;
+      return matchesSearch && matchesCompany && matchesYear && matchesCity && matchesSector && matchesBio && matchesInterest;
     });
-  }, [profiles, searchQuery, filterCompany, filterYear, filterCity]);
+  }, [profiles, searchQuery, filterCompany, filterYear, filterCity, filterSector, filterBio, filterInterests]);
 
   const clearFilters = () => {
     setSearchQuery('');
     setFilterCompany('');
     setFilterYear('');
     setFilterCity('');
+    setFilterSector('');
+    setFilterBio('');
+    setFilterInterests([]);
+    setInterestInput('');
   };
 
-  const hasActiveFilters = searchQuery || filterCompany || filterYear || filterCity;
+  const hasActiveFilters = searchQuery || filterCompany || filterYear || filterCity || filterSector || filterBio || filterInterests.length > 0;
 
   const handleSignOut = async () => {
     await signOut();
@@ -129,7 +177,7 @@ const DirectoryPage: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">WiCS Alumni Directory</h1>
               <p className="text-sm text-gray-600 mt-1">
-                Connect with {profiles.length} alumni
+                Connect with {profiles.length} members
               </p>
             </div>
             <div className="flex items-center space-x-4">
@@ -167,20 +215,20 @@ const DirectoryPage: React.FC = () => {
             {/* Search Bar */}
             <div>
               <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                Search by Name
+                Search
               </label>
               <input
                 type="text"
                 id="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search alumni..."
+                placeholder="Search by name, company, or sector..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             {/* Filter Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
               <div>
                 <label htmlFor="filter-company" className="block text-sm font-medium text-gray-700 mb-2">
                   Company
@@ -226,12 +274,120 @@ const DirectoryPage: React.FC = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Cities</option>
-                  {cities.map(city => (
-                    <option key={city} value={city}>{city}</option>
+                  {[...LOCATIONS].sort().map(loc => (
+                    <option key={loc} value={loc}>{loc}</option>
                   ))}
                 </select>
               </div>
 
+              <div>
+                <label htmlFor="filter-sector" className="block text-sm font-medium text-gray-700 mb-2">
+                  Sector
+                </label>
+                <select
+                  id="filter-sector"
+                  value={filterSector}
+                  onChange={(e) => setFilterSector(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Sectors</option>
+                  {sectors.map(sector => (
+                    <option key={sector} value={sector}>{sector}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="filter-interest" className="block text-sm font-medium text-gray-700 mb-2">
+                  Area of Interest
+                </label>
+                {filterInterests.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {filterInterests.map(tag => (
+                      <span key={tag} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+                        {tag}
+                        <button
+                          type="button"
+                          onMouseDown={(e) => { e.preventDefault(); setFilterInterests(prev => prev.filter(t => t !== tag)); }}
+                          className="hover:text-blue-900 leading-none"
+                        >×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div ref={interestContainerRef} className="relative">
+                  <input
+                    type="text"
+                    id="filter-interest"
+                    value={interestInput}
+                    onChange={(e) => {
+                      setInterestInput(e.target.value);
+                      setInterestOpen(true);
+                      setInterestActiveIndex(-1);
+                    }}
+                    onFocus={() => setInterestOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setInterestOpen(true);
+                        setInterestActiveIndex(i => Math.min(i + 1, interestSuggestions.length - 1));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setInterestActiveIndex(i => Math.max(i - 1, -1));
+                      } else if (e.key === 'Enter' && interestActiveIndex >= 0) {
+                        e.preventDefault();
+                        setFilterInterests(prev => [...prev, interestSuggestions[interestActiveIndex]]);
+                        setInterestInput('');
+                        setInterestActiveIndex(-1);
+                      } else if (e.key === 'Escape') {
+                        setInterestOpen(false);
+                      } else if (e.key === 'Backspace' && interestInput === '' && filterInterests.length > 0) {
+                        setFilterInterests(prev => prev.slice(0, -1));
+                      }
+                    }}
+                    placeholder="Type to filter interests..."
+                    autoComplete="off"
+                    className={`w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${interestOpen && interestSuggestions.length > 0 ? 'rounded-t-md rounded-b-none' : 'rounded-md'}`}
+                  />
+                  {interestOpen && interestSuggestions.length > 0 && (
+                    <ul className="absolute z-50 rounded-b-md max-h-[360px] overflow-y-scroll list-none w-full" style={{ backgroundColor: 'white', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #d1d5db', top: '100%', bottom: 'auto', padding: 0, margin: 0 }}>
+                      {interestSuggestions.map((tag, i) => (
+                        <li
+                          key={tag}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setFilterInterests(prev => [...prev, tag]);
+                            setInterestInput('');
+                            setInterestActiveIndex(-1);
+                          }}
+                          className={`px-4 py-2 cursor-pointer text-sm ${
+                            i === interestActiveIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+                          }`}
+                          style={{ borderBottom: i < interestSuggestions.length - 1 ? '1px solid #e5e7eb' : 'none', listStyle: 'none' }}
+                        >
+                          {tag}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bio Keyword Filter */}
+            <div>
+              <label htmlFor="filter-bio" className="block text-sm font-medium text-gray-700 mb-2">
+                Bio Keyword
+              </label>
+              <input
+                type="text"
+                id="filter-bio"
+                value={filterBio}
+                onChange={(e) => setFilterBio(e.target.value)}
+                placeholder="Search by bio keyword or phrase..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
 
             {/* Clear Filters and View Toggle */}
@@ -271,18 +427,18 @@ const DirectoryPage: React.FC = () => {
         {/* Results */}
         <div>
           <p className="text-sm text-gray-600 mb-4">
-            Showing {filteredProfiles.length} of {profiles.length} alumni
+            Showing {filteredProfiles.length} of {profiles.length} members
           </p>
 
           {filteredProfiles.length === 0 ? (
             <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-              <p className="text-gray-500">No alumni found matching your criteria.</p>
+              <p className="text-gray-500">No members found matching your criteria.</p>
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
                   className="mt-4 text-blue-600 hover:text-blue-800"
                 >
-                  Clear filters to see all alumni
+                  Clear filters to see all members
                 </button>
               )}
             </div>

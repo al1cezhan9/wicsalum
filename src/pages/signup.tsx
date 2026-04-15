@@ -2,12 +2,9 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const SignupPage: React.FC = () => {
-  const [email, setEmail] = useState<string>('');
   const [message, setMessage] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
   const [googleLoading, setGoogleLoading] = useState<boolean>(false);
 
-  // Handle Google Sign-In using Supabase OAuth (simpler and more reliable)
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setMessage('');
@@ -29,45 +26,6 @@ const SignupPage: React.FC = () => {
       console.error('Google sign-in error:', err);
       setMessage('An unexpected error occurred with Google Sign-In. Please try again.');
       setGoogleLoading(false);
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      setMessage('Please enter your email.');
-      return;
-    }
-
-    // validate email domain
-    if (!email.endsWith('@columbia.edu') && !email.endsWith('@barnard.edu') && !email.endsWith('@alum.barnard.edu') && !email.endsWith('@caa.columbia.edu')) {
-      setMessage('Please enter a valid @columbia.edu, @barnard.edu, @alum.barnard.edu, or @caa.columbia.edu email.');
-      return;
-    }
-
-    setLoading(true);
-    setMessage('');
-
-    try {
-      // sends the magic link via Supabase
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/callback`,
-        },
-      });
-
-      if (error) {
-        setMessage(`Error: ${error.message}`);
-        setLoading(false);
-        return;
-      }
-
-      setMessage('Success! Check your email for the magic link to verify your account.');
-      setLoading(false);
-    } catch (err) {
-      setMessage('An unexpected error occurred. Please try again.');
-      setLoading(false);
     }
   };
 
