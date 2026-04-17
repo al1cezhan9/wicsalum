@@ -150,10 +150,6 @@ const RegisterPage: React.FC = () => {
       setError('Current city/location is required.');
       return false;
     }
-    if (!formData.bio.trim()) {
-      setError('Bio is required.');
-      return false;
-    }
     if (formData.bio.length > 500) {
       setError('Bio must be 500 characters or less.');
       return false;
@@ -240,7 +236,7 @@ const RegisterPage: React.FC = () => {
           current_company: formData.current_company.trim(),
           job_title: formData.job_title.trim() || null,
           current_city: formData.current_city.trim(),
-          bio: formData.bio.trim(),
+          bio: formData.bio.trim() || null,
           email: formData.email.trim() || null,
           linkedin_url: formData.linkedin_url.trim() || null,
           sector: sectorValue,
@@ -401,7 +397,6 @@ const RegisterPage: React.FC = () => {
                   maxLength={500}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Tell us a bit about yourself..."
-                  required
                 />
                 <p className="mt-1 text-sm text-gray-500">
                   {formData.bio.length}/500 characters
