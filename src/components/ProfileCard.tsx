@@ -10,11 +10,10 @@ interface ProfileCardProps {
 const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
   const [bioExpanded, setBioExpanded] = React.useState(false);
 
-  const bioExcerpt = profile.bio.length > 150 
-    ? profile.bio.substring(0, 150) + '...' 
-    : profile.bio;
+  const bio = profile.bio ?? '';
+  const bioExcerpt = bio.length > 150 ? bio.substring(0, 150) + '...' : bio;
 
-  const [favorited, setFavorited] = useState(isFavorited(profile.id));
+  const [favorited, setFavorited] = React.useState(isFavorited(profile.id));
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
       <div className="flex items-start justify-between mb-4">
@@ -56,16 +55,10 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
         )}
       </div>
 
-      {profile.tags && profile.tags.length > 0 && (
-        <div className="mb-4 text-sm text-gray-700">
-          <span className="font-medium text-gray-700">Areas of Interest: </span>{profile.tags.join(', ')}
-        </div>
-      )}
-
       <div className="mb-4 text-sm text-gray-700">
         <span className="font-medium text-gray-700">Bio: </span>
-        {bioExpanded ? profile.bio : bioExcerpt}
-        {profile.bio.length > 150 && (
+        {bioExpanded ? bio : bioExcerpt}
+        {bio.length > 150 && (
           <button
             onClick={() => setBioExpanded(!bioExpanded)}
             className="text-blue-600 hover:text-blue-800 text-sm mt-1 block"
