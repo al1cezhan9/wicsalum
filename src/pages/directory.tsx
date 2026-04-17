@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import ProfileCard from '../components/ProfileCard';
+import { getFavorites } from '../utils/favorites';
 import { LOCATIONS } from '../lib/locations';
 import { PRESET_TAGS } from '../components/TagSelector';
 
@@ -30,6 +31,7 @@ const DirectoryPage: React.FC = () => {
     const unique = Array.from(new Set(profiles.map(p => p.current_company).filter(Boolean)));
     return unique.sort();
   }, [profiles]);
+  const [directoryView, setDirectoryView] = useState<'all' | 'saved'>('all');
 
   const cities = useMemo(() => {
     const unique = Array.from(new Set(profiles.map(p => p.current_city).filter(Boolean)));
@@ -180,14 +182,31 @@ const DirectoryPage: React.FC = () => {
                   Admin Panel
                 </button>
               )}
+
               {userProfile && (
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="text-sm text-gray-700 hover:text-gray-900"
-                >
-                  My Profile
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate('/profile')}
+                    className="text-sm text-gray-700 hover:text-gray-900"
+                  >
+                    My Profile
+                  </button>
+
+                  <button
+                    className={`px-3 py-1 rounded text-sm ${directoryView === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    onClick={() => setDirectoryView('all')}
+                  >
+                    All Profiles
+                  </button>
+                  <button
+                    className={`px-3 py-1 rounded text-sm ${directoryView === 'saved' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    onClick={() => setDirectoryView('saved')}
+                  >
+                    Saved Profiles
+                  </button>
+                </div>
               )}
+
               <button
                 onClick={handleSignOut}
                 className="text-sm text-gray-700 hover:text-gray-900"
@@ -200,6 +219,21 @@ const DirectoryPage: React.FC = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Directory View Toggle */}
+        <div className="flex gap-2 mb-4">
+          <button
+            className={`px-4 py-2 rounded ${directoryView === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setDirectoryView('all')}
+          >
+            All Profiles
+          </button>
+          <button
+            className={`px-4 py-2 rounded ${directoryView === 'saved' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => setDirectoryView('saved')}
+          >
+            Saved Profiles
+          </button>
+        </div>
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="space-y-4">
