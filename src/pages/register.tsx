@@ -408,6 +408,8 @@ const RegisterPage: React.FC = () => {
                 </p>
               </div>
 
+              <TagSelector selected={selectedTags} onChange={setSelectedTags} />
+
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address (Optional)

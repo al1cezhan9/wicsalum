@@ -422,13 +422,7 @@ const ProfilePage: React.FC = () => {
               {profile.tags && profile.tags.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Areas of Expertise / Interest</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.tags.map(tag => (
-                      <span key={tag} className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-gray-900">{profile.tags.join(', ')}</p>
                 </div>
               )}
 
