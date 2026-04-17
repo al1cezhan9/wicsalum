@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
+import TagSelector from '../components/TagSelector';
+import LocationAutocomplete from '../components/LocationAutocomplete';
 import Avatar from '../components/Avatar';
 
 
@@ -19,6 +21,7 @@ const ProfilePage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
   const [editData, setEditData] = useState<Partial<UserProfile>>({});
+  const [editTags, setEditTags] = useState<string[]>([]);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string>('');
@@ -69,6 +72,7 @@ const ProfilePage: React.FC = () => {
       linkedin_url: profile.linkedin_url || '',
       sector: profile.sector || '',
     });
+    setEditTags(profile.tags ?? []);
     setEditError('');
     setEditing(true);
   };
@@ -87,11 +91,6 @@ const ProfilePage: React.FC = () => {
     if (!editData.current_city?.trim()) { setEditError('City is required.'); return; }
     if (!editData.bio?.trim()) { setEditError('Bio is required.'); return; }
     if ((editData.bio?.length ?? 0) > 500) { setEditError('Bio must be 500 characters or less.'); return; }
-    if (!editData.email?.trim() && !editData.linkedin_url?.trim()) {
-      setEditError('Please provide at least one contact method (email or LinkedIn).');
-      return;
-    }
-
     setSaving(true);
 
     let newPictureUrl = profile.profile_picture_url;
@@ -99,7 +98,7 @@ const ProfilePage: React.FC = () => {
       const user = await getCurrentUser();
       if (user) {
         const fileExt = profilePicFile.name.split('.').pop();
-        const filePath = `${user.id}/profile.${fileExt}`;
+        const filePath = `${user.id}/profile_${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from('profile-pictures')
           .upload(filePath, profilePicFile, { upsert: true });
@@ -123,6 +122,7 @@ const ProfilePage: React.FC = () => {
         email: editData.email?.trim() || null,
         linkedin_url: editData.linkedin_url?.trim() || null,
         sector: editData.sector?.trim() || null,
+        tags: editTags,
         profile_picture_url: newPictureUrl,
         updated_at: new Date().toISOString(),
       })
@@ -144,11 +144,14 @@ const ProfilePage: React.FC = () => {
   const handleDelete = async () => {
     if (!profile) return;
     setSaving(true);
-    const { error } = await supabase.from('profiles').delete().eq('id', profile.id);
-    setSaving(false);
-    if (error) { setEditError(`Error deleting profile: ${error.message}`); return; }
-    await signOut();
-    navigate('/signup');
+    const user = await getCurrentUser();
+    if (user) {
+        const { error } = await supabase.from('users').delete().eq('id', user.id);
+        setSaving(false);
+        if (error) { setEditError(`Error deleting profile: ${error.message}`); return; }
+        await signOut();
+        navigate('/signup');
+    }
   };
 
   const handleSignOut = async () => {
@@ -258,11 +261,9 @@ const ProfilePage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">City/Location <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
+                  <LocationAutocomplete
                     value={editData.current_city || ''}
-                    onChange={e => setEditData(d => ({ ...d, current_city: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onChange={val => setEditData(d => ({ ...d, current_city: val }))}
                   />
                 </div>
                 <div>
@@ -293,6 +294,8 @@ const ProfilePage: React.FC = () => {
                 />
                 <p className="mt-1 text-sm text-gray-500">{(editData.bio || '').length}/500 characters</p>
               </div>
+
+              <TagSelector selected={editTags} onChange={setEditTags} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -398,12 +401,37 @@ const ProfilePage: React.FC = () => {
                     <p className="text-gray-900">{profile.sector.charAt(0).toUpperCase() + profile.sector.slice(1)}</p>
                   </div>
                 )}
+                {profile.email && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">Email</h3>
+                    <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">{profile.email}</a>
+                  </div>
+                )}
+                {profile.linkedin_url && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-1">LinkedIn</h3>
+                    <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">{profile.linkedin_url}</a>
+                  </div>
+                )}
               </div>
 
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Bio</h3>
                 <p className="text-gray-900 whitespace-pre-wrap">{profile.bio}</p>
               </div>
+
+              {profile.tags && profile.tags.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Areas of Expertise / Interest</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.tags.map(tag => (
+                      <span key={tag} className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="pt-6 border-t">
                 <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
