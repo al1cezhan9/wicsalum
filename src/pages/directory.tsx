@@ -114,7 +114,10 @@ const DirectoryPage: React.FC = () => {
   };
 
   const filteredProfiles = useMemo(() => {
+    const savedIds = directoryView === 'saved' ? new Set(getFavorites()) : null;
     return profiles.filter(profile => {
+      if (savedIds && !savedIds.has(profile.id)) return false;
+
       const q = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery ||
         profile.name.toLowerCase().includes(q) ||
@@ -130,7 +133,7 @@ const DirectoryPage: React.FC = () => {
 
       return matchesSearch && matchesCompany && matchesYear && matchesCity && matchesSector && matchesBio && matchesInterest;
     });
-  }, [profiles, searchQuery, filterCompany, filterYear, filterCity, filterSector, filterBio, filterInterests]);
+  }, [profiles, directoryView, searchQuery, filterCompany, filterYear, filterCity, filterSector, filterBio, filterInterests]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -219,21 +222,6 @@ const DirectoryPage: React.FC = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Directory View Toggle */}
-        <div className="flex gap-2 mb-4">
-          <button
-            className={`px-4 py-2 rounded ${directoryView === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-            onClick={() => setDirectoryView('all')}
-          >
-            All Profiles
-          </button>
-          <button
-            className={`px-4 py-2 rounded ${directoryView === 'saved' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-            onClick={() => setDirectoryView('saved')}
-          >
-            Saved Profiles
-          </button>
-        </div>
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="space-y-4">
