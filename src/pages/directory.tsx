@@ -22,6 +22,12 @@ const DirectoryPage: React.FC = () => {
   const [interestOpen, setInterestOpen] = useState(false);
   const [interestActiveIndex, setInterestActiveIndex] = useState(-1);
   const interestContainerRef = useRef<HTMLDivElement>(null);
+  const [companyOpen, setCompanyOpen] = useState(false);
+  const [companyActiveIndex, setCompanyActiveIndex] = useState(-1);
+  const companyContainerRef = useRef<HTMLDivElement>(null);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [cityActiveIndex, setCityActiveIndex] = useState(-1);
+  const cityContainerRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -60,10 +66,24 @@ const DirectoryPage: React.FC = () => {
     );
   }, [allInterests, interestInput, filterInterests]);
 
+  const companySuggestions = useMemo(() => {
+    return companies.filter(c => c.toLowerCase().includes(filterCompany.toLowerCase()));
+  }, [companies, filterCompany]);
+
+  const citySuggestions = useMemo(() => {
+    return [...LOCATIONS].sort().filter(c => c.toLowerCase().includes(filterCity.toLowerCase()));
+  }, [filterCity]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (interestContainerRef.current && !interestContainerRef.current.contains(e.target as Node)) {
         setInterestOpen(false);
+      }
+      if (companyContainerRef.current && !companyContainerRef.current.contains(e.target as Node)) {
+        setCompanyOpen(false);
+      }
+      if (cityContainerRef.current && !cityContainerRef.current.contains(e.target as Node)) {
+        setCityOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -124,7 +144,7 @@ const DirectoryPage: React.FC = () => {
         profile.current_company.toLowerCase().includes(q) ||
         (profile.sector && profile.sector.toLowerCase().includes(q));
 
-      const matchesCompany = !filterCompany || profile.current_company === filterCompany;
+      const matchesCompany = !filterCompany || profile.current_company.toLowerCase().includes(filterCompany.toLowerCase());
       const matchesYear = !filterYear || profile.graduation_year.toString() === filterYear;
       const matchesCity = !filterCity || profile.current_city.toLowerCase().includes(filterCity.toLowerCase());
       const matchesSector = !filterSector || profile.sector === filterSector;
@@ -246,17 +266,49 @@ const DirectoryPage: React.FC = () => {
                 <label htmlFor="filter-company" className="block text-sm font-medium text-gray-700 mb-2">
                   Company
                 </label>
-                <select
-                  id="filter-company"
-                  value={filterCompany}
-                  onChange={(e) => setFilterCompany(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Companies</option>
-                  {companies.map(company => (
-                    <option key={company} value={company}>{company}</option>
-                  ))}
-                </select>
+                <div ref={companyContainerRef} className="relative">
+                  <input
+                    type="text"
+                    id="filter-company"
+                    value={filterCompany}
+                    onChange={(e) => { setFilterCompany(e.target.value); setCompanyOpen(true); setCompanyActiveIndex(-1); }}
+                    onFocus={() => setCompanyOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setCompanyOpen(true);
+                        setCompanyActiveIndex(i => Math.min(i + 1, companySuggestions.length - 1));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setCompanyActiveIndex(i => Math.max(i - 1, -1));
+                      } else if (e.key === 'Enter' && companyActiveIndex >= 0) {
+                        e.preventDefault();
+                        setFilterCompany(companySuggestions[companyActiveIndex]);
+                        setCompanyOpen(false);
+                        setCompanyActiveIndex(-1);
+                      } else if (e.key === 'Escape') {
+                        setCompanyOpen(false);
+                      }
+                    }}
+                    placeholder="Type to filter companies..."
+                    autoComplete="off"
+                    className={`w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${companyOpen && companySuggestions.length > 0 ? 'rounded-t-md rounded-b-none' : 'rounded-md'}`}
+                  />
+                  {companyOpen && companySuggestions.length > 0 && (
+                    <ul className="absolute z-50 rounded-b-md max-h-[240px] overflow-y-auto list-none w-full" style={{ backgroundColor: 'white', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #d1d5db', top: '100%', padding: 0, margin: 0 }}>
+                      {companySuggestions.map((company, i) => (
+                        <li
+                          key={company}
+                          onMouseDown={(e) => { e.preventDefault(); setFilterCompany(company); setCompanyOpen(false); setCompanyActiveIndex(-1); }}
+                          className={`px-4 py-2 cursor-pointer text-sm ${i === companyActiveIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}
+                          style={{ borderBottom: i < companySuggestions.length - 1 ? '1px solid #e5e7eb' : 'none', listStyle: 'none' }}
+                        >
+                          {company}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -280,17 +332,49 @@ const DirectoryPage: React.FC = () => {
                 <label htmlFor="filter-city" className="block text-sm font-medium text-gray-700 mb-2">
                   City
                 </label>
-                <select
-                  id="filter-city"
-                  value={filterCity}
-                  onChange={(e) => setFilterCity(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Cities</option>
-                  {[...LOCATIONS].sort().map(loc => (
-                    <option key={loc} value={loc}>{loc}</option>
-                  ))}
-                </select>
+                <div ref={cityContainerRef} className="relative">
+                  <input
+                    type="text"
+                    id="filter-city"
+                    value={filterCity}
+                    onChange={(e) => { setFilterCity(e.target.value); setCityOpen(true); setCityActiveIndex(-1); }}
+                    onFocus={() => setCityOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setCityOpen(true);
+                        setCityActiveIndex(i => Math.min(i + 1, citySuggestions.length - 1));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setCityActiveIndex(i => Math.max(i - 1, -1));
+                      } else if (e.key === 'Enter' && cityActiveIndex >= 0) {
+                        e.preventDefault();
+                        setFilterCity(citySuggestions[cityActiveIndex]);
+                        setCityOpen(false);
+                        setCityActiveIndex(-1);
+                      } else if (e.key === 'Escape') {
+                        setCityOpen(false);
+                      }
+                    }}
+                    placeholder="Type to filter cities..."
+                    autoComplete="off"
+                    className={`w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${cityOpen && citySuggestions.length > 0 ? 'rounded-t-md rounded-b-none' : 'rounded-md'}`}
+                  />
+                  {cityOpen && citySuggestions.length > 0 && (
+                    <ul className="absolute z-50 rounded-b-md max-h-[240px] overflow-y-auto list-none w-full" style={{ backgroundColor: 'white', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #d1d5db', top: '100%', padding: 0, margin: 0 }}>
+                      {citySuggestions.map((city, i) => (
+                        <li
+                          key={city}
+                          onMouseDown={(e) => { e.preventDefault(); setFilterCity(city); setCityOpen(false); setCityActiveIndex(-1); }}
+                          className={`px-4 py-2 cursor-pointer text-sm ${i === cityActiveIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}
+                          style={{ borderBottom: i < citySuggestions.length - 1 ? '1px solid #e5e7eb' : 'none', listStyle: 'none' }}
+                        >
+                          {city}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
 
               <div>
