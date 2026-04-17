@@ -6,6 +6,7 @@ import TagSelector from '../components/TagSelector';
 import LocationAutocomplete from '../components/LocationAutocomplete';
 import Avatar from '../components/Avatar';
 
+
 const SECTORS = [
   'software', 'finance', 'consulting', 'healthcare', 'education',
   'government', 'nonprofit', 'research', 'other',

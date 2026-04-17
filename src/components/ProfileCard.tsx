@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserProfile } from '../lib/auth';
 import Avatar from './Avatar';
+import { toggleFavorite, isFavorited } from '../utils/favorites';
 
 interface ProfileCardProps {
   profile: UserProfile;
@@ -9,17 +10,29 @@ interface ProfileCardProps {
 const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
   const [bioExpanded, setBioExpanded] = React.useState(false);
 
-  const bioExcerpt = profile.bio.length > 150 
-    ? profile.bio.substring(0, 150) + '...' 
-    : profile.bio;
+  const bio = profile.bio ?? '';
+  const bioExcerpt = bio.length > 150 ? bio.substring(0, 150) + '...' : bio;
 
+  const [favorited, setFavorited] = React.useState(isFavorited(profile.id));
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <Avatar name={profile.name} profilePictureUrl={profile.profile_picture_url} size="sm" />
           <div>
-            <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
+            <div className="flex items-center gap-2">
+                <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
+                <button
+                    onClick={() => {
+                    toggleFavorite(profile.id);
+                    setFavorited(!favorited);
+                }}
+                className="text-red-500 hover:text-red-600"
+                title={favorited ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                    {favorited ? '❤️' : '🤍'}
+                </button>
+        </div>
             <p className="text-sm text-gray-600">Class of {profile.graduation_year}</p>
           </div>
         </div>
@@ -42,16 +55,10 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
         )}
       </div>
 
-      {profile.tags && profile.tags.length > 0 && (
-        <div className="mb-4 text-sm text-gray-700">
-          <span className="font-medium text-gray-700">Areas of Interest: </span>{profile.tags.join(', ')}
-        </div>
-      )}
-
       <div className="mb-4 text-sm text-gray-700">
         <span className="font-medium text-gray-700">Bio: </span>
-        {bioExpanded ? profile.bio : bioExcerpt}
-        {profile.bio.length > 150 && (
+        {bioExpanded ? bio : bioExcerpt}
+        {bio.length > 150 && (
           <button
             onClick={() => setBioExpanded(!bioExpanded)}
             className="text-blue-600 hover:text-blue-800 text-sm mt-1 block"
@@ -79,6 +86,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
     </div>
   );
 };
+
 
 export default ProfileCard;
 

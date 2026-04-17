@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import ProfileCard from '../components/ProfileCard';
+import { getFavorites } from '../utils/favorites';
 import { LOCATIONS } from '../lib/locations';
 import { PRESET_TAGS } from '../components/TagSelector';
 
@@ -30,6 +31,7 @@ const DirectoryPage: React.FC = () => {
     const unique = Array.from(new Set(profiles.map(p => p.current_company).filter(Boolean)));
     return unique.sort();
   }, [profiles]);
+  const [directoryView, setDirectoryView] = useState<'all' | 'saved'>('all');
 
   const cities = useMemo(() => {
     const unique = Array.from(new Set(profiles.map(p => p.current_city).filter(Boolean)));
@@ -112,7 +114,10 @@ const DirectoryPage: React.FC = () => {
   };
 
   const filteredProfiles = useMemo(() => {
+    const savedIds = directoryView === 'saved' ? new Set(getFavorites()) : null;
     return profiles.filter(profile => {
+      if (savedIds && !savedIds.has(profile.id)) return false;
+
       const q = searchQuery.toLowerCase();
       const matchesSearch = !searchQuery ||
         profile.name.toLowerCase().includes(q) ||
@@ -128,7 +133,7 @@ const DirectoryPage: React.FC = () => {
 
       return matchesSearch && matchesCompany && matchesYear && matchesCity && matchesSector && matchesBio && matchesInterest;
     });
-  }, [profiles, searchQuery, filterCompany, filterYear, filterCity, filterSector, filterBio, filterInterests]);
+  }, [profiles, directoryView, searchQuery, filterCompany, filterYear, filterCity, filterSector, filterBio, filterInterests]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -180,14 +185,31 @@ const DirectoryPage: React.FC = () => {
                   Admin Panel
                 </button>
               )}
+
               {userProfile && (
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="text-sm text-gray-700 hover:text-gray-900"
-                >
-                  My Profile
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate('/profile')}
+                    className="text-sm text-gray-700 hover:text-gray-900"
+                  >
+                    My Profile
+                  </button>
+
+                  <button
+                    className={`px-3 py-1 rounded text-sm ${directoryView === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    onClick={() => setDirectoryView('all')}
+                  >
+                    All Profiles
+                  </button>
+                  <button
+                    className={`px-3 py-1 rounded text-sm ${directoryView === 'saved' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    onClick={() => setDirectoryView('saved')}
+                  >
+                    Saved Profiles
+                  </button>
+                </div>
               )}
+
               <button
                 onClick={handleSignOut}
                 className="text-sm text-gray-700 hover:text-gray-900"
