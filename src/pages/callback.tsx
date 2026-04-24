@@ -78,7 +78,7 @@ export default function LoginCallback() {
           .insert({
             id: user.id,
             email: user.email,
-            role: 'alumni'
+            role: 'non-admin'
           })
           .select()
           .single();

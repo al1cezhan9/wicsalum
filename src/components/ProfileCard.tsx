@@ -9,68 +9,58 @@ interface ProfileCardProps {
 const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
   const [bioExpanded, setBioExpanded] = React.useState(false);
 
-  const bioExcerpt = profile.bio.length > 150 
-    ? profile.bio.substring(0, 150) + '...' 
+  const bioExcerpt = profile.bio.length > 140
+    ? profile.bio.substring(0, 140) + '...'
     : profile.bio;
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Avatar name={profile.name} profilePictureUrl={profile.profile_picture_url} size="sm" />
-          <div>
-            <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
-            <p className="text-sm text-gray-600">Class of {profile.graduation_year}</p>
-          </div>
+    <div className="bg-white border border-[#C8B6F0] rounded-lg p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <Avatar name={profile.name} profilePictureUrl={profile.profile_picture_url} size="sm" />
+        <div className="min-w-0">
+          <h3 className="font-bold text-[#2E1A47] leading-tight truncate">{profile.name}</h3>
+          <p className="text-xs text-[#8B6AD9] mt-0.5">Class of {profile.graduation_year}</p>
         </div>
       </div>
 
-      <div className="space-y-1.5 mb-4 text-sm text-gray-600">
-        <div>
-          <span className="font-medium text-gray-700">Company: </span>
-          <span className="text-gray-900">{profile.current_company}</span>
+      <div className="space-y-1 mb-4 text-sm">
+        <p className="text-[#4F2A94] font-semibold">
+          {profile.current_company}
           {profile.job_title && (
-            <span className="text-gray-500"> • {profile.job_title}</span>
+            <span className="text-gray-400 font-normal"> · {profile.job_title}</span>
           )}
-        </div>
-        <div className="text-gray-600">{profile.current_city}</div>
+        </p>
+        <p className="text-gray-500">{profile.current_city}</p>
         {profile.sector && (
-          <div className="text-xs">
-            <span className="font-medium text-gray-700">Sector: </span>
-            <span className="text-gray-500">{profile.sector}</span>
-          </div>
+          <span className="inline-block text-xs bg-[#EDE7F6] text-[#4F2A94] px-2 py-0.5 rounded-full">
+            {profile.sector}
+          </span>
         )}
       </div>
 
-      {profile.tags && profile.tags.length > 0 && (
-        <div className="mb-4 text-sm text-gray-700">
-          <span className="font-medium text-gray-700">Areas of Interest: </span>{profile.tags.join(', ')}
-        </div>
-      )}
-
-      <div className="mb-4 text-sm text-gray-700">
-        <span className="font-medium text-gray-700">Bio: </span>
-        {bioExpanded ? profile.bio : bioExcerpt}
-        {profile.bio.length > 150 && (
+      <div className="border-t border-[#F0EBF9] pt-4 mb-4">
+        <p className="text-sm text-gray-600 leading-relaxed">
+          {bioExpanded ? profile.bio : bioExcerpt}
+        </p>
+        {profile.bio.length > 140 && (
           <button
             onClick={() => setBioExpanded(!bioExpanded)}
-            className="text-blue-600 hover:text-blue-800 text-sm mt-1 block"
+            className="text-xs text-[#673AB7] mt-1.5"
           >
             {bioExpanded ? 'Show less' : 'Read more'}
           </button>
         )}
       </div>
 
-
       {(profile.email || profile.linkedin_url) && (
-        <div className="border-t pt-4 mt-4 space-y-1 text-sm">
+        <div className="border-t border-[#F0EBF9] pt-4 space-y-1.5 text-sm">
           {profile.email && (
-            <a href={`mailto:${profile.email}`} className="block text-blue-600 hover:text-blue-800">
+            <a href={`mailto:${profile.email}`} className="block text-[#673AB7]">
               {profile.email}
             </a>
           )}
           {profile.linkedin_url && (
-            <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="block text-blue-600 hover:text-blue-800">
+            <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="block text-[#673AB7]">
               LinkedIn
             </a>
           )}
@@ -81,4 +71,3 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
 };
 
 export default ProfileCard;
-

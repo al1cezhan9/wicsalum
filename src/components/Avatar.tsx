@@ -1,8 +1,8 @@
 import React from 'react';
 
 const COLORS = [
-  'bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-amber-500',
-  'bg-red-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500',
+  'bg-[#2E1A47]', 'bg-[#4F2A94]', 'bg-[#673AB7]', 'bg-[#8B6AD9]',
+  'bg-[#3D2170]', 'bg-[#5B3EA0]', 'bg-[#7B58CB]', 'bg-[#9B7AE5]',
 ];
 
 function getInitials(name: string): string {

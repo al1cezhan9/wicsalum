@@ -10,6 +10,11 @@ const SECTORS = [
   'government', 'nonprofit', 'research', 'other',
 ];
 
+const INPUT_CLASS =
+  'w-full px-4 py-2.5 border border-[#C8B6F0] rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#673AB7] focus:border-[#673AB7]';
+
+const LABEL_CLASS = 'block text-xs font-medium text-[#8B6AD9] uppercase tracking-wide mb-1';
+
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -24,23 +29,13 @@ const ProfilePage: React.FC = () => {
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string>('');
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  useEffect(() => { loadProfile(); }, []);
 
   const loadProfile = async () => {
     const user = await getCurrentUser();
-    if (!user) {
-      navigate('/signup');
-      return;
-    }
-
+    if (!user) { navigate('/signup'); return; }
     const userProfile = await getUserProfile();
-    if (!userProfile) {
-      navigate('/register');
-      return;
-    }
-
+    if (!userProfile) { navigate('/register'); return; }
     setProfile(userProfile);
     const role = await getUserRole();
     setIsAdmin(role?.role === 'admin');
@@ -75,15 +70,11 @@ const ProfilePage: React.FC = () => {
     setEditing(true);
   };
 
-  const handleEditCancel = () => {
-    setEditing(false);
-    setEditError('');
-  };
+  const handleEditCancel = () => { setEditing(false); setEditError(''); };
 
   const handleSave = async () => {
     if (!profile) return;
     setEditError('');
-
     if (!editData.name?.trim()) { setEditError('Name is required.'); return; }
     if (!editData.current_company?.trim()) { setEditError('Company is required.'); return; }
     if (!editData.current_city?.trim()) { setEditError('City is required.'); return; }
@@ -129,12 +120,7 @@ const ProfilePage: React.FC = () => {
       .single();
 
     setSaving(false);
-
-    if (error) {
-      setEditError(`Error saving: ${error.message}`);
-      return;
-    }
-
+    if (error) { setEditError(`Error saving: ${error.message}`); return; }
     setProfile(data as UserProfile);
     setEditing(false);
   };
@@ -149,17 +135,14 @@ const ProfilePage: React.FC = () => {
     navigate('/signup');
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/signup');
-  };
+  const handleSignOut = async () => { await signOut(); navigate('/signup'); };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F7F4FF] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#C8B6F0] border-t-[#673AB7] mx-auto"></div>
+          <p className="mt-4 text-[#8B6AD9] text-sm">Loading profile...</p>
         </div>
       </div>
     );
@@ -168,33 +151,31 @@ const ProfilePage: React.FC = () => {
   if (!profile) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-            <div className="flex items-center space-x-4">
-              {isAdmin && (
-                <button onClick={() => navigate('/admin')} className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                  Admin Panel
-                </button>
-              )}
-              <button onClick={() => navigate('/directory')} className="text-sm text-gray-700 hover:text-gray-900">
-                Directory
+    <div className="min-h-screen bg-[#F7F4FF]">
+      <header className="sticky top-0 z-10 bg-[#2E1A47]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-white tracking-wide">My Profile</h1>
+          <nav className="flex items-center gap-6">
+            {isAdmin && (
+              <button onClick={() => navigate('/admin')} className="text-[#C8B6F0] text-sm font-medium">
+                Admin
               </button>
-              <button onClick={handleSignOut} className="text-sm text-gray-700 hover:text-gray-900">
-                Sign Out
-              </button>
-            </div>
-          </div>
+            )}
+            <button onClick={() => navigate('/directory')} className="text-[#C8B6F0] text-sm">
+              Directory
+            </button>
+            <button onClick={handleSignOut} className="text-[#C8B6F0] text-sm">
+              Sign Out
+            </button>
+          </nav>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white border border-[#C8B6F0] rounded-lg p-8">
           {editing ? (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">Edit Profile</h2>
+            <div className="space-y-5">
+              <h2 className="text-lg font-bold text-[#2E1A47]">Edit Profile</h2>
 
               <div className="flex items-center gap-4">
                 <Avatar
@@ -203,72 +184,67 @@ const ProfilePage: React.FC = () => {
                   size="lg"
                 />
                 <div>
-                  <label className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <label className="cursor-pointer text-sm text-[#673AB7] font-medium">
                     {profile.profile_picture_url || profilePicPreview ? 'Change photo' : 'Upload photo'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfilePicChange}
-                      className="hidden"
-                    />
+                    <input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
                   </label>
-                  <p className="text-xs text-gray-500 mt-1">JPEG, PNG. Max 5MB.</p>
+                  <p className="text-xs text-gray-400 mt-1">JPEG, PNG. Max 5MB.</p>
                 </div>
               </div>
 
               {editError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-800">{editError}</p>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-700">{editError}</p>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
+                <label className={LABEL_CLASS}>Full Name <span className="text-red-400">*</span></label>
                 <input
                   type="text"
                   value={editData.name || ''}
                   onChange={e => setEditData(d => ({ ...d, name: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={INPUT_CLASS}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Company <span className="text-red-500">*</span></label>
+                  <label className={LABEL_CLASS}>Current Company <span className="text-red-400">*</span></label>
                   <input
                     type="text"
                     value={editData.current_company || ''}
                     onChange={e => setEditData(d => ({ ...d, current_company: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={INPUT_CLASS}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role/Title</label>
+                  <label className={LABEL_CLASS}>Role / Title</label>
                   <input
                     type="text"
                     value={editData.job_title || ''}
                     onChange={e => setEditData(d => ({ ...d, job_title: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={INPUT_CLASS}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City/Location <span className="text-red-500">*</span></label>
+                  <label className={LABEL_CLASS}>City / Location <span className="text-red-400">*</span></label>
                   <input
                     type="text"
                     value={editData.current_city || ''}
                     onChange={e => setEditData(d => ({ ...d, current_city: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={INPUT_CLASS}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+                  <label className={LABEL_CLASS}>Sector</label>
                   <select
                     value={editData.sector || ''}
                     onChange={e => setEditData(d => ({ ...d, sector: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={INPUT_CLASS}
                   >
                     <option value="">Select sector</option>
                     {SECTORS.map(s => (
@@ -279,38 +255,36 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bio <span className="text-red-500">*</span>
-                </label>
+                <label className={LABEL_CLASS}>Bio <span className="text-red-400">*</span></label>
                 <textarea
                   value={editData.bio || ''}
                   onChange={e => setEditData(d => ({ ...d, bio: e.target.value }))}
                   rows={4}
                   maxLength={500}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={INPUT_CLASS}
                 />
-                <p className="mt-1 text-sm text-gray-500">{(editData.bio || '').length}/500 characters</p>
+                <p className="mt-1 text-xs text-gray-400">{(editData.bio || '').length}/500 characters</p>
               </div>
 
               <TagSelector selected={editTags} onChange={setEditTags} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label className={LABEL_CLASS}>Email</label>
                   <input
                     type="email"
                     value={editData.email || ''}
                     onChange={e => setEditData(d => ({ ...d, email: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={INPUT_CLASS}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                  <label className={LABEL_CLASS}>LinkedIn URL</label>
                   <input
                     type="url"
                     value={editData.linkedin_url || ''}
                     onChange={e => setEditData(d => ({ ...d, linkedin_url: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={INPUT_CLASS}
                   />
                 </div>
               </div>
@@ -319,43 +293,43 @@ const ProfilePage: React.FC = () => {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition disabled:opacity-50"
+                  className="bg-[#673AB7] text-white px-6 py-2 rounded-md text-sm font-medium disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button
                   onClick={handleEditCancel}
                   disabled={saving}
-                  className="text-gray-700 px-6 py-2 rounded-md border border-gray-300 hover:bg-gray-50 transition disabled:opacity-50"
+                  className="text-[#673AB7] px-6 py-2 rounded-md border border-[#C8B6F0] text-sm disabled:opacity-50"
                 >
                   Cancel
                 </button>
               </div>
 
-              <div className="pt-6 border-t">
+              <div className="pt-5 border-t border-[#F0EBF9]">
                 {!confirmingDelete ? (
                   <button
                     onClick={() => setConfirmingDelete(true)}
                     disabled={saving}
-                    className="text-sm text-red-600 hover:text-red-800"
+                    className="text-sm text-red-400"
                   >
                     Delete my profile
                   </button>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-sm text-gray-700">Are you sure? This cannot be undone. You will be signed out.</p>
+                    <p className="text-sm text-gray-600">Are you sure? This cannot be undone. You will be signed out.</p>
                     <div className="flex gap-3">
                       <button
                         onClick={handleDelete}
                         disabled={saving}
-                        className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm transition disabled:opacity-50"
+                        className="bg-red-500 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
                       >
                         {saving ? 'Deleting...' : 'Yes, delete my profile'}
                       </button>
                       <button
                         onClick={() => setConfirmingDelete(false)}
                         disabled={saving}
-                        className="text-gray-700 px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm transition disabled:opacity-50"
+                        className="text-gray-500 px-4 py-2 rounded-md border border-gray-200 text-sm disabled:opacity-50"
                       >
                         Cancel
                       </button>
@@ -370,88 +344,66 @@ const ProfilePage: React.FC = () => {
                 <div className="flex items-center gap-4">
                   <Avatar name={profile.name} profilePictureUrl={profile.profile_picture_url} size="lg" />
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
-                    <p className="text-lg text-gray-600 mt-1">Class of {profile.graduation_year}</p>
+                    <h2 className="text-2xl font-bold text-[#2E1A47]">{profile.name}</h2>
+                    <p className="text-[#8B6AD9] text-sm mt-0.5">Class of {profile.graduation_year}</p>
                   </div>
                 </div>
-                <button
-                  onClick={handleEditStart}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
+                <button onClick={handleEditStart} className="text-sm text-[#673AB7] font-medium">
                   Edit
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Current Company</h3>
-                  <p className="text-gray-900">{profile.current_company}</p>
-                  {profile.job_title && <p className="text-gray-600 mt-1">{profile.job_title}</p>}
+                  <h3 className={LABEL_CLASS}>Company</h3>
+                  <p className="text-[#4F2A94] font-semibold">{profile.current_company}</p>
+                  {profile.job_title && <p className="text-gray-500 text-sm mt-0.5">{profile.job_title}</p>}
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Location</h3>
-                  <p className="text-gray-900">{profile.current_city}</p>
+                  <h3 className={LABEL_CLASS}>Location</h3>
+                  <p className="text-gray-700">{profile.current_city}</p>
                 </div>
                 {profile.sector && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">Sector</h3>
-                    <p className="text-gray-900">{profile.sector.charAt(0).toUpperCase() + profile.sector.slice(1)}</p>
+                    <h3 className={LABEL_CLASS}>Sector</h3>
+                    <span className="inline-block text-sm bg-[#EDE7F6] text-[#4F2A94] px-3 py-0.5 rounded-full">
+                      {profile.sector.charAt(0).toUpperCase() + profile.sector.slice(1)}
+                    </span>
                   </div>
                 )}
                 {profile.email && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">Email</h3>
-                    <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">{profile.email}</a>
+                    <h3 className={LABEL_CLASS}>Email</h3>
+                    <a href={`mailto:${profile.email}`} className="text-[#673AB7] text-sm">{profile.email}</a>
                   </div>
                 )}
                 {profile.linkedin_url && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">LinkedIn</h3>
-                    <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">{profile.linkedin_url}</a>
+                    <h3 className={LABEL_CLASS}>LinkedIn</h3>
+                    <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-[#673AB7] text-sm">
+                      {profile.linkedin_url}
+                    </a>
                   </div>
                 )}
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Bio</h3>
-                <p className="text-gray-900 whitespace-pre-wrap">{profile.bio}</p>
+              <div className="border-t border-[#F0EBF9] pt-5">
+                <h3 className={LABEL_CLASS}>Bio</h3>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{profile.bio}</p>
               </div>
 
               {profile.tags && profile.tags.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Areas of Expertise / Interest</h3>
-                  <div className="flex flex-wrap gap-2">
+                <div className="border-t border-[#F0EBF9] pt-5">
+                  <h3 className={LABEL_CLASS}>Areas of Expertise / Interest</h3>
+                  <div className="flex flex-wrap gap-2 mt-2">
                     {profile.tags.map(tag => (
-                      <span key={tag} className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full">
+                      <span key={tag} className="bg-[#EDE7F6] text-[#4F2A94] text-xs px-3 py-1 rounded-full">
                         {tag}
                       </span>
                     ))}
                   </div>
                 </div>
               )}
-
-              <div className="pt-6 border-t">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
-                <div className="space-y-2">
-                  {profile.email && (
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2">Email:</span>
-                      <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">{profile.email}</a>
-                    </div>
-                  )}
-                  {profile.linkedin_url && (
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2">LinkedIn:</span>
-                      <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                        {profile.linkedin_url}
-                      </a>
-                    </div>
-                  )}
-                  {!profile.email && !profile.linkedin_url && (
-                    <p className="text-gray-500 text-sm">No contact information provided</p>
-                  )}
-                </div>
-              </div>
             </div>
           )}
         </div>

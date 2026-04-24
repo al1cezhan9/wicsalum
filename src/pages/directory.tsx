@@ -4,6 +4,12 @@ import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import ProfileCard from '../components/ProfileCard';
 
+const SELECT_CLASS =
+  'w-full px-3 py-2.5 border border-[#C8B6F0] rounded-md text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#673AB7] focus:border-[#673AB7]';
+
+const INPUT_CLASS =
+  'w-full px-4 py-2.5 border border-[#C8B6F0] rounded-md text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#673AB7] focus:border-[#673AB7]';
+
 const DirectoryPage: React.FC = () => {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -18,7 +24,6 @@ const DirectoryPage: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Get unique values for filter dropdowns
   const companies = useMemo(() => {
     const unique = Array.from(new Set(profiles.map(p => p.current_company).filter(Boolean)));
     return unique.sort();
@@ -39,26 +44,17 @@ const DirectoryPage: React.FC = () => {
     return unique.sort();
   }, [profiles]);
 
-
   useEffect(() => {
     checkAuthAndLoadProfiles();
   }, []);
 
   const checkAuthAndLoadProfiles = async () => {
     const user = await getCurrentUser();
-    if (!user) {
-      navigate('/signup');
-      return;
-    }
-
+    if (!user) { navigate('/signup'); return; }
     const profile = await getUserProfile();
     setUserProfile(profile);
-
-    // Check if user is admin
     const role = await getUserRole();
     setIsAdmin(role?.role === 'admin');
-
-    // Load all profiles
     await loadProfiles();
   };
 
@@ -69,12 +65,7 @@ const DirectoryPage: React.FC = () => {
         .from('profiles')
         .select('*')
         .order('name', { ascending: true });
-
-      if (error) {
-        console.error('Error loading profiles:', error);
-        return;
-      }
-
+      if (error) { console.error('Error loading profiles:', error); return; }
       setProfiles(data || []);
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -90,13 +81,11 @@ const DirectoryPage: React.FC = () => {
         profile.name.toLowerCase().includes(q) ||
         profile.current_company.toLowerCase().includes(q) ||
         (profile.sector && profile.sector.toLowerCase().includes(q));
-
       const matchesCompany = !filterCompany || profile.current_company === filterCompany;
       const matchesYear = !filterYear || profile.graduation_year.toString() === filterYear;
       const matchesCity = !filterCity || profile.current_city === filterCity;
       const matchesSector = !filterSector || profile.sector === filterSector;
       const matchesBio = !filterBio || (profile.bio && profile.bio.toLowerCase().includes(filterBio.toLowerCase()));
-
       return matchesSearch && matchesCompany && matchesYear && matchesCity && matchesSector && matchesBio;
     });
   }, [profiles, searchQuery, filterCompany, filterYear, filterCity, filterSector, filterBio]);
@@ -119,187 +108,101 @@ const DirectoryPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F7F4FF] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading directory...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-[#C8B6F0] border-t-[#673AB7] mx-auto"></div>
+          <p className="mt-4 text-[#8B6AD9] text-sm">Loading directory...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">WiCS Alumni Directory</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Connect with {profiles.length} members
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              {isAdmin && (
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Admin Panel
-                </button>
-              )}
-              {userProfile && (
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="text-sm text-gray-700 hover:text-gray-900"
-                >
-                  My Profile
-                </button>
-              )}
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-gray-700 hover:text-gray-900"
-              >
-                Sign Out
-              </button>
-            </div>
+    <div className="min-h-screen bg-[#F7F4FF]">
+      <header className="sticky top-0 z-10 bg-[#2E1A47]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-white tracking-wide">WiCS Alumni Directory</h1>
+            <p className="text-[#C8B6F0] text-xs mt-0.5">{profiles.length} members</p>
           </div>
+          <nav className="flex items-center gap-6">
+            {isAdmin && (
+              <button onClick={() => navigate('/admin')} className="text-[#C8B6F0] text-sm font-medium">
+                Admin
+              </button>
+            )}
+            {userProfile && (
+              <button onClick={() => navigate('/profile')} className="text-[#C8B6F0] text-sm">
+                My Profile
+              </button>
+            )}
+            <button onClick={handleSignOut} className="text-[#C8B6F0] text-sm">
+              Sign Out
+            </button>
+          </nav>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="space-y-4">
-            {/* Search Bar */}
-            <div>
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                Search
-              </label>
-              <input
-                type="text"
-                id="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, company, or sector..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+        <div className="bg-white border border-[#C8B6F0] rounded-lg p-5 mb-6">
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, company, or sector..."
+              className={INPUT_CLASS}
+            />
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <select value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)} className={SELECT_CLASS}>
+                <option value="">All Companies</option>
+                {companies.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className={SELECT_CLASS}>
+                <option value="">All Years</option>
+                {years.map(y => <option key={y} value={y.toString()}>{y}</option>)}
+              </select>
+              <select value={filterCity} onChange={(e) => setFilterCity(e.target.value)} className={SELECT_CLASS}>
+                <option value="">All Cities</option>
+                {cities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={filterSector} onChange={(e) => setFilterSector(e.target.value)} className={SELECT_CLASS}>
+                <option value="">All Sectors</option>
+                {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
 
-            {/* Filter Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label htmlFor="filter-company" className="block text-sm font-medium text-gray-700 mb-2">
-                  Company
-                </label>
-                <select
-                  id="filter-company"
-                  value={filterCompany}
-                  onChange={(e) => setFilterCompany(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Companies</option>
-                  {companies.map(company => (
-                    <option key={company} value={company}>{company}</option>
-                  ))}
-                </select>
-              </div>
+            <input
+              type="text"
+              value={filterBio}
+              onChange={(e) => setFilterBio(e.target.value)}
+              placeholder="Filter by bio keyword..."
+              className={INPUT_CLASS}
+            />
 
-              <div>
-                <label htmlFor="filter-year" className="block text-sm font-medium text-gray-700 mb-2">
-                  Graduation Year
-                </label>
-                <select
-                  id="filter-year"
-                  value={filterYear}
-                  onChange={(e) => setFilterYear(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Years</option>
-                  {years.map(year => (
-                    <option key={year} value={year.toString()}>{year}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="filter-city" className="block text-sm font-medium text-gray-700 mb-2">
-                  City
-                </label>
-                <select
-                  id="filter-city"
-                  value={filterCity}
-                  onChange={(e) => setFilterCity(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Cities</option>
-                  {cities.map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="filter-sector" className="block text-sm font-medium text-gray-700 mb-2">
-                  Sector
-                </label>
-                <select
-                  id="filter-sector"
-                  value={filterSector}
-                  onChange={(e) => setFilterSector(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Sectors</option>
-                  {sectors.map(sector => (
-                    <option key={sector} value={sector}>{sector}</option>
-                  ))}
-                </select>
-              </div>
-
-            </div>
-
-            {/* Bio Keyword Filter */}
-            <div>
-              <label htmlFor="filter-bio" className="block text-sm font-medium text-gray-700 mb-2">
-                Bio Keyword
-              </label>
-              <input
-                type="text"
-                id="filter-bio"
-                value={filterBio}
-                onChange={(e) => setFilterBio(e.target.value)}
-                placeholder="Search by bio keyword or phrase..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {/* Clear Filters and View Toggle */}
-            <div className="flex items-center justify-between">
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
+            <div className="flex items-center justify-between pt-1">
+              {hasActiveFilters ? (
+                <button onClick={clearFilters} className="text-xs text-[#673AB7] font-medium">
                   Clear all filters
                 </button>
-              )}
-              <div className="flex items-center space-x-2 ml-auto">
+              ) : <div />}
+              <div className="flex gap-1">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-[#EDE7F6] text-[#673AB7]' : 'text-gray-300'}`}
                   title="Grid view"
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                   </svg>
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-[#EDE7F6] text-[#673AB7]' : 'text-gray-300'}`}
                   title="List view"
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                   </svg>
                 </button>
@@ -308,40 +211,33 @@ const DirectoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Results */}
-        <div>
-          <p className="text-sm text-gray-600 mb-4">
-            Showing {filteredProfiles.length} of {profiles.length} members
-          </p>
+        <p className="text-xs text-[#8B6AD9] font-medium uppercase tracking-wide mb-5">
+          Showing {filteredProfiles.length} of {profiles.length} members
+        </p>
 
-          {filteredProfiles.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-              <p className="text-gray-500">No members found matching your criteria.</p>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="mt-4 text-blue-600 hover:text-blue-800"
-                >
-                  Clear filters to see all members
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-                : 'space-y-4'
-            }>
-              {filteredProfiles.map(profile => (
-                <ProfileCard key={profile.id} profile={profile} />
-              ))}
-            </div>
-          )}
-        </div>
+        {filteredProfiles.length === 0 ? (
+          <div className="bg-white border border-[#C8B6F0] rounded-lg p-12 text-center">
+            <p className="text-gray-400 text-sm">No members found matching your criteria.</p>
+            {hasActiveFilters && (
+              <button onClick={clearFilters} className="mt-3 text-sm text-[#673AB7]">
+                Clear filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'
+              : 'space-y-4'
+          }>
+            {filteredProfiles.map(profile => (
+              <ProfileCard key={profile.id} profile={profile} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default DirectoryPage;
-
