@@ -202,7 +202,7 @@ const RegisterPage: React.FC = () => {
           .insert({
             id: user.id,
             email: user.email,
-            role: 'alumni'
+            role: 'non-admin'
           })
           .select()
           .single();
