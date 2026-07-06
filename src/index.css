@@ -1,3 +1,205 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --plum-900: #2E1A47;
+  --plum-700: #4F2A94;
+  --plum-500: #673AB7;
+  --plum-300: #8B6AD9;
+  --plum-100: #C8B6F0;
+  --plum-50:  #F3EEFB;
+  --ink:      #1F1330;
+  --muted:    #6B6480;
+  --paper:    #FBFAFD;
+  --line:     #E7E2F1;
+  --danger:   #B33A3A;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Lato', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Long unbroken strings (like URLs or gibberish bios) must wrap
+   inside their container instead of blowing past it. */
+p, h1, h2, h3, h4, h5, h6, span, div, a, label {
+  overflow-wrap: anywhere;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Lato', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--plum-500);
+  outline-offset: 2px;
+}
+
+.input-plum {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  font-size: 0.9rem;
+  color: var(--ink);
+  font-family: 'Lato', sans-serif;
+  height: 42px;
+  box-sizing: border-box;
+  line-height: 1.35;
+}
+/* textarea keeps auto height */
+textarea.input-plum {
+  height: auto;
+  min-height: 6rem;
+}
+.input-plum::placeholder { color: #9A93A8; }
+.input-plum:focus {
+  outline: none;
+  border-color: var(--plum-500);
+  box-shadow: 0 0 0 3px rgba(103, 58, 183, 0.12);
+}
+
+.btn-primary {
+  background: var(--plum-700);
+  color: white;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: 1px solid var(--plum-700);
+  font-family: 'Lato', sans-serif;
+  cursor: pointer;
+}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--plum-700);
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border: 1px solid var(--line);
+  font-family: 'Lato', sans-serif;
+  cursor: pointer;
+}
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--plum-50);
+  color: var(--plum-700);
+  border: 1px solid var(--plum-100);
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--plum-500);
+  margin-bottom: 0.5rem;
+}
+
+/* Vertical stack of form fields with generous between-field spacing.
+   Uses flex gap so it works regardless of Tailwind class scanning. */
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+.form-stack-tight {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.radio-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  padding: 0.15rem 0;
+}
+
+/* Directory grid — flex-wrap layout so cards flow naturally */
+.card-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.card-grid > * {
+  flex: 1 1 260px;
+  min-width: 260px;
+  max-width: 360px;
+  display: flex;
+}
+.card-grid > * > * {
+  width: 100%;
+}
+
+/* Segmented toggle: full width on mobile, natural width from md up.
+   Sized to match .input-plum so it aligns with adjacent form inputs. */
+.seg-toggle {
+  display: flex;
+  align-items: stretch;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px;
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+}
+.seg-toggle > * {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (min-width: 768px) {
+  .seg-toggle {
+    width: auto;
+  }
+  .seg-toggle > * {
+    flex: none;
+    min-width: 5rem;
+  }
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

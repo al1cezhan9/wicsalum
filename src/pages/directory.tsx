@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getCurrentUser, getUserProfile, getUserRole, UserProfile, signOut } from '../lib/auth';
 import ProfileCard from '../components/ProfileCard';
+import ProfileModal from '../components/ProfileModal';
 import { getFavorites } from '../utils/favorites';
 import { LOCATIONS } from '../lib/locations';
 import { PRESET_TAGS } from '../components/TagSelector';
@@ -11,6 +12,7 @@ const DirectoryPage: React.FC = () => {
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCompany, setFilterCompany] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -18,6 +20,7 @@ const DirectoryPage: React.FC = () => {
   const [filterSector, setFilterSector] = useState('');
   const [filterBio, setFilterBio] = useState('');
   const [filterInterests, setFilterInterests] = useState<string[]>([]);
+
   const [interestInput, setInterestInput] = useState('');
   const [interestOpen, setInterestOpen] = useState(false);
   const [interestActiveIndex, setInterestActiveIndex] = useState(-1);
@@ -28,132 +31,105 @@ const DirectoryPage: React.FC = () => {
   const [cityOpen, setCityOpen] = useState(false);
   const [cityActiveIndex, setCityActiveIndex] = useState(-1);
   const cityContainerRef = useRef<HTMLDivElement>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
-
-  // Get unique values for filter dropdowns
-  const companies = useMemo(() => {
-    const unique = Array.from(new Set(profiles.map(p => p.current_company).filter(Boolean)));
-    return unique.sort();
-  }, [profiles]);
   const [directoryView, setDirectoryView] = useState<'all' | 'saved'>('all');
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
 
-  const cities = useMemo(() => {
-    const unique = Array.from(new Set(profiles.map(p => p.current_city).filter(Boolean)));
-    return unique.sort();
-  }, [profiles]);
-
-  const years = useMemo(() => {
-    const unique = Array.from(new Set(profiles.map(p => p.graduation_year))).sort((a, b) => b - a);
-    return unique;
-  }, [profiles]);
-
-  const sectors = useMemo(() => {
-    const unique = Array.from(new Set(profiles.map(p => p.sector).filter(Boolean)));
-    return unique.sort();
-  }, [profiles]);
-
-
+  const companies = useMemo(
+    () => Array.from(new Set(profiles.map(p => p.current_company).filter(Boolean))).sort(),
+    [profiles]
+  );
+  const years = useMemo(
+    () => Array.from(new Set(profiles.map(p => p.graduation_year))).sort((a, b) => b - a),
+    [profiles]
+  );
+  const sectors = useMemo(
+    () => Array.from(new Set(profiles.map(p => p.sector).filter(Boolean))).sort(),
+    [profiles]
+  );
   const allInterests = useMemo(() => {
     const profileTags = Array.from(new Set(profiles.flatMap(p => p.tags ?? [])));
     return Array.from(new Set([...PRESET_TAGS, ...profileTags])).sort();
   }, [profiles]);
 
-  const interestSuggestions = useMemo(() => {
-    return allInterests.filter(t =>
-      t.toLowerCase().includes(interestInput.toLowerCase()) && !filterInterests.includes(t)
-    );
-  }, [allInterests, interestInput, filterInterests]);
-
-  const companySuggestions = useMemo(() => {
-    return companies.filter(c => c.toLowerCase().includes(filterCompany.toLowerCase()));
-  }, [companies, filterCompany]);
-
-  const citySuggestions = useMemo(() => {
-    return [...LOCATIONS].sort().filter(c => c.toLowerCase().includes(filterCity.toLowerCase()));
-  }, [filterCity]);
+  const interestSuggestions = useMemo(
+    () =>
+      allInterests.filter(
+        t => t.toLowerCase().includes(interestInput.toLowerCase()) && !filterInterests.includes(t)
+      ),
+    [allInterests, interestInput, filterInterests]
+  );
+  const companySuggestions = useMemo(
+    () => companies.filter(c => c.toLowerCase().includes(filterCompany.toLowerCase())),
+    [companies, filterCompany]
+  );
+  const citySuggestions = useMemo(
+    () => [...LOCATIONS].sort().filter(c => c.toLowerCase().includes(filterCity.toLowerCase())),
+    [filterCity]
+  );
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (interestContainerRef.current && !interestContainerRef.current.contains(e.target as Node)) {
+      if (interestContainerRef.current && !interestContainerRef.current.contains(e.target as Node))
         setInterestOpen(false);
-      }
-      if (companyContainerRef.current && !companyContainerRef.current.contains(e.target as Node)) {
+      if (companyContainerRef.current && !companyContainerRef.current.contains(e.target as Node))
         setCompanyOpen(false);
-      }
-      if (cityContainerRef.current && !cityContainerRef.current.contains(e.target as Node)) {
+      if (cityContainerRef.current && !cityContainerRef.current.contains(e.target as Node))
         setCityOpen(false);
-      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
-    checkAuthAndLoadProfiles();
+    (async () => {
+      const user = await getCurrentUser();
+      if (!user) { navigate('/signup'); return; }
+      setUserProfile(await getUserProfile());
+      const role = await getUserRole();
+      setIsAdmin(role?.role === 'admin');
+      await loadProfiles();
+    })();
   }, []);
-
-  const checkAuthAndLoadProfiles = async () => {
-    const user = await getCurrentUser();
-    if (!user) {
-      navigate('/signup');
-      return;
-    }
-
-    const profile = await getUserProfile();
-    setUserProfile(profile);
-
-    // Check if user is admin
-    const role = await getUserRole();
-    setIsAdmin(role?.role === 'admin');
-
-    // Load all profiles
-    await loadProfiles();
-  };
 
   const loadProfiles = async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('name', { ascending: true });
-
-      if (error) {
-        console.error('Error loading profiles:', error);
-        return;
-      }
-
-      setProfiles(data || []);
-    } catch (err) {
-      console.error('Unexpected error:', err);
-    } finally {
-      setLoading(false);
-    }
+    const { data, error } = await supabase
+      .from('profiles').select('*').order('name', { ascending: true });
+    if (error) console.error('Error loading profiles:', error);
+    setProfiles(data || []);
+    setLoading(false);
   };
 
   const filteredProfiles = useMemo(() => {
     const savedIds = directoryView === 'saved' ? new Set(getFavorites()) : null;
     return profiles.filter(profile => {
       if (savedIds && !savedIds.has(profile.id)) return false;
-
       const q = searchQuery.toLowerCase();
-      const matchesSearch = !searchQuery ||
+      const matchesSearch =
+        !searchQuery ||
         profile.name.toLowerCase().includes(q) ||
         profile.current_company.toLowerCase().includes(q) ||
         (profile.sector && profile.sector.toLowerCase().includes(q));
-
-      const matchesCompany = !filterCompany || profile.current_company.toLowerCase().includes(filterCompany.toLowerCase());
+      const matchesCompany =
+        !filterCompany || profile.current_company.toLowerCase().includes(filterCompany.toLowerCase());
       const matchesYear = !filterYear || profile.graduation_year.toString() === filterYear;
-      const matchesCity = !filterCity || profile.current_city.toLowerCase().includes(filterCity.toLowerCase());
+      const matchesCity =
+        !filterCity || profile.current_city.toLowerCase().includes(filterCity.toLowerCase());
       const matchesSector = !filterSector || profile.sector === filterSector;
-      const matchesBio = !filterBio || (profile.bio && profile.bio.toLowerCase().includes(filterBio.toLowerCase()));
-      const matchesInterest = filterInterests.length === 0 || filterInterests.some(tag => (profile.tags ?? []).includes(tag));
-
+      const matchesBio =
+        !filterBio || (profile.bio && profile.bio.toLowerCase().includes(filterBio.toLowerCase()));
+      const matchesInterest =
+        filterInterests.length === 0 ||
+        filterInterests.some(tag => (profile.tags ?? []).includes(tag));
       return matchesSearch && matchesCompany && matchesYear && matchesCity && matchesSector && matchesBio && matchesInterest;
     });
-  }, [profiles, directoryView, searchQuery, filterCompany, filterYear, filterCity, filterSector, filterBio, filterInterests]);
+  }, [
+    profiles, directoryView, searchQuery, filterCompany, filterYear,
+    filterCity, filterSector, filterBio, filterInterests,
+  ]);
 
   const clearFilters = () => {
     setSearchQuery('');
@@ -166,395 +142,379 @@ const DirectoryPage: React.FC = () => {
     setInterestInput('');
   };
 
-  const hasActiveFilters = searchQuery || filterCompany || filterYear || filterCity || filterSector || filterBio || filterInterests.length > 0;
+  const hasActiveFilters =
+    !!searchQuery || !!filterCompany || !!filterYear || !!filterCity ||
+    !!filterSector || !!filterBio || filterInterests.length > 0;
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/signup');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading directory...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">WiCS Alumni Directory</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Connect with {profiles.length} members
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              {isAdmin && (
-                <button
-                  onClick={() => navigate('/admin')}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Admin Panel
-                </button>
-              )}
-
-              {userProfile && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => navigate('/profile')}
-                    className="text-sm text-gray-700 hover:text-gray-900"
-                  >
-                    My Profile
-                  </button>
-
-                  <button
-                    className={`px-3 py-1 rounded text-sm ${directoryView === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                    onClick={() => setDirectoryView('all')}
-                  >
-                    All Profiles
-                  </button>
-                  <button
-                    className={`px-3 py-1 rounded text-sm ${directoryView === 'saved' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                    onClick={() => setDirectoryView('saved')}
-                  >
-                    Saved Profiles
-                  </button>
-                </div>
-              )}
-
-              <button
-                onClick={handleSignOut}
-                className="text-sm text-gray-700 hover:text-gray-900"
-              >
-                Sign Out
-              </button>
-            </div>
+    <div className="min-h-screen" style={{ background: 'var(--paper)' }}>
+      <header
+        className="sticky top-0 z-40"
+        style={{ background: '#A597D2', borderBottom: '1px solid #8B6AD9' }}
+      >
+        <div
+          className="max-w-7xl mx-auto flex items-center justify-between"
+          style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem', paddingTop: '0.75rem', paddingBottom: '0.75rem' }}
+        >
+          <div>
+            <h1 className="font-black" style={{ fontSize: '1.4rem', color: '#FFFFFF' }}>
+              WiCS Alumni Directory
+            </h1>
+            <p className="text-sm mt-1 font-black" style={{ color: '#FFFFFF', opacity: 0.85 }}>
+              {profiles.length} member{profiles.length === 1 ? '' : 's'}
+            </p>
           </div>
+          <nav className="flex items-center gap-1">
+            {isAdmin && <NavButton onClick={() => navigate('/admin')}>Admin</NavButton>}
+            {userProfile && <NavButton onClick={() => navigate('/profile')}>My Profile</NavButton>}
+            <NavButton onClick={handleSignOut}>Sign Out</NavButton>
+          </nav>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="space-y-4">
-            {/* Search Bar */}
-            <div>
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                Search
-              </label>
+      <main
+        className="max-w-7xl mx-auto"
+        style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem', paddingTop: '3rem', paddingBottom: '3rem' }}
+      >
+        <section className="card" style={{ padding: '2rem', marginBottom: '2.5rem' }}>
+          <div
+            className="flex flex-col md:flex-row md:items-center"
+            style={{ gap: '1.5rem', marginBottom: '2.5rem' }}
+          >
+            <div className="flex-1">
               <input
                 type="text"
-                id="search"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, company, or sector..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search by name, company, or sector"
+                className="input-plum"
               />
             </div>
-
-            {/* Filter Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              <div>
-                <label htmlFor="filter-company" className="block text-sm font-medium text-gray-700 mb-2">
-                  Company
-                </label>
-                <div ref={companyContainerRef} className="relative">
-                  <input
-                    type="text"
-                    id="filter-company"
-                    value={filterCompany}
-                    onChange={(e) => { setFilterCompany(e.target.value); setCompanyOpen(true); setCompanyActiveIndex(-1); }}
-                    onFocus={() => setCompanyOpen(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        setCompanyOpen(true);
-                        setCompanyActiveIndex(i => Math.min(i + 1, companySuggestions.length - 1));
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        setCompanyActiveIndex(i => Math.max(i - 1, -1));
-                      } else if (e.key === 'Enter' && companyActiveIndex >= 0) {
-                        e.preventDefault();
-                        setFilterCompany(companySuggestions[companyActiveIndex]);
-                        setCompanyOpen(false);
-                        setCompanyActiveIndex(-1);
-                      } else if (e.key === 'Escape') {
-                        setCompanyOpen(false);
-                      }
-                    }}
-                    placeholder="Type to filter companies..."
-                    autoComplete="off"
-                    className={`w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${companyOpen && companySuggestions.length > 0 ? 'rounded-t-md rounded-b-none' : 'rounded-md'}`}
-                  />
-                  {companyOpen && companySuggestions.length > 0 && (
-                    <ul className="absolute z-50 rounded-b-md max-h-[240px] overflow-y-auto list-none w-full" style={{ backgroundColor: 'white', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #d1d5db', top: '100%', padding: 0, margin: 0 }}>
-                      {companySuggestions.map((company, i) => (
-                        <li
-                          key={company}
-                          onMouseDown={(e) => { e.preventDefault(); setFilterCompany(company); setCompanyOpen(false); setCompanyActiveIndex(-1); }}
-                          className={`px-4 py-2 cursor-pointer text-sm ${i === companyActiveIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}
-                          style={{ borderBottom: i < companySuggestions.length - 1 ? '1px solid #e5e7eb' : 'none', listStyle: 'none' }}
-                        >
-                          {company}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="filter-year" className="block text-sm font-medium text-gray-700 mb-2">
-                  Graduation Year
-                </label>
-                <select
-                  id="filter-year"
-                  value={filterYear}
-                  onChange={(e) => setFilterYear(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Years</option>
-                  {years.map(year => (
-                    <option key={year} value={year.toString()}>{year}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="filter-city" className="block text-sm font-medium text-gray-700 mb-2">
-                  City
-                </label>
-                <div ref={cityContainerRef} className="relative">
-                  <input
-                    type="text"
-                    id="filter-city"
-                    value={filterCity}
-                    onChange={(e) => { setFilterCity(e.target.value); setCityOpen(true); setCityActiveIndex(-1); }}
-                    onFocus={() => setCityOpen(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        setCityOpen(true);
-                        setCityActiveIndex(i => Math.min(i + 1, citySuggestions.length - 1));
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        setCityActiveIndex(i => Math.max(i - 1, -1));
-                      } else if (e.key === 'Enter' && cityActiveIndex >= 0) {
-                        e.preventDefault();
-                        setFilterCity(citySuggestions[cityActiveIndex]);
-                        setCityOpen(false);
-                        setCityActiveIndex(-1);
-                      } else if (e.key === 'Escape') {
-                        setCityOpen(false);
-                      }
-                    }}
-                    placeholder="Type to filter cities..."
-                    autoComplete="off"
-                    className={`w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${cityOpen && citySuggestions.length > 0 ? 'rounded-t-md rounded-b-none' : 'rounded-md'}`}
-                  />
-                  {cityOpen && citySuggestions.length > 0 && (
-                    <ul className="absolute z-50 rounded-b-md max-h-[240px] overflow-y-auto list-none w-full" style={{ backgroundColor: 'white', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #d1d5db', top: '100%', padding: 0, margin: 0 }}>
-                      {citySuggestions.map((city, i) => (
-                        <li
-                          key={city}
-                          onMouseDown={(e) => { e.preventDefault(); setFilterCity(city); setCityOpen(false); setCityActiveIndex(-1); }}
-                          className={`px-4 py-2 cursor-pointer text-sm ${i === cityActiveIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}
-                          style={{ borderBottom: i < citySuggestions.length - 1 ? '1px solid #e5e7eb' : 'none', listStyle: 'none' }}
-                        >
-                          {city}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="filter-sector" className="block text-sm font-medium text-gray-700 mb-2">
-                  Sector
-                </label>
-                <select
-                  id="filter-sector"
-                  value={filterSector}
-                  onChange={(e) => setFilterSector(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Sectors</option>
-                  {sectors.map(sector => (
-                    <option key={sector} value={sector}>{sector}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="filter-interest" className="block text-sm font-medium text-gray-700 mb-2">
-                  Area of Interest
-                </label>
-                {filterInterests.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-1">
-                    {filterInterests.map(tag => (
-                      <span key={tag} className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">
-                        {tag}
-                        <button
-                          type="button"
-                          onMouseDown={(e) => { e.preventDefault(); setFilterInterests(prev => prev.filter(t => t !== tag)); }}
-                          className="hover:text-blue-900 leading-none"
-                        >×</button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div ref={interestContainerRef} className="relative">
-                  <input
-                    type="text"
-                    id="filter-interest"
-                    value={interestInput}
-                    onChange={(e) => {
-                      setInterestInput(e.target.value);
-                      setInterestOpen(true);
-                      setInterestActiveIndex(-1);
-                    }}
-                    onFocus={() => setInterestOpen(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        setInterestOpen(true);
-                        setInterestActiveIndex(i => Math.min(i + 1, interestSuggestions.length - 1));
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        setInterestActiveIndex(i => Math.max(i - 1, -1));
-                      } else if (e.key === 'Enter' && interestActiveIndex >= 0) {
-                        e.preventDefault();
-                        setFilterInterests(prev => [...prev, interestSuggestions[interestActiveIndex]]);
-                        setInterestInput('');
-                        setInterestActiveIndex(-1);
-                      } else if (e.key === 'Escape') {
-                        setInterestOpen(false);
-                      } else if (e.key === 'Backspace' && interestInput === '' && filterInterests.length > 0) {
-                        setFilterInterests(prev => prev.slice(0, -1));
-                      }
-                    }}
-                    placeholder="Type to filter interests..."
-                    autoComplete="off"
-                    className={`w-full px-4 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${interestOpen && interestSuggestions.length > 0 ? 'rounded-t-md rounded-b-none' : 'rounded-md'}`}
-                  />
-                  {interestOpen && interestSuggestions.length > 0 && (
-                    <ul className="absolute z-50 rounded-b-md max-h-[360px] overflow-y-scroll list-none w-full" style={{ backgroundColor: 'white', borderLeft: '1px solid #d1d5db', borderRight: '1px solid #d1d5db', borderBottom: '1px solid #d1d5db', top: '100%', bottom: 'auto', padding: 0, margin: 0 }}>
-                      {interestSuggestions.map((tag, i) => (
-                        <li
-                          key={tag}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setFilterInterests(prev => [...prev, tag]);
-                            setInterestInput('');
-                            setInterestActiveIndex(-1);
-                          }}
-                          className={`px-4 py-2 cursor-pointer text-sm ${
-                            i === interestActiveIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
-                          }`}
-                          style={{ borderBottom: i < interestSuggestions.length - 1 ? '1px solid #e5e7eb' : 'none', listStyle: 'none' }}
-                        >
-                          {tag}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-
+            <div className="seg-toggle">
+              <SegButton active={directoryView === 'all'} onClick={() => setDirectoryView('all')}>
+                All
+              </SegButton>
+              <SegButton active={directoryView === 'saved'} onClick={() => setDirectoryView('saved')}>
+                Saved
+              </SegButton>
             </div>
+          </div>
 
-            {/* Bio Keyword Filter */}
-            <div>
-              <label htmlFor="filter-bio" className="block text-sm font-medium text-gray-700 mb-2">
-                Bio Keyword
-              </label>
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+            style={{ columnGap: '1.5rem', rowGap: '2rem' }}
+          >
+            <FilterField label="Company">
+              <div ref={companyContainerRef} className="relative">
+                <input
+                  type="text"
+                  value={filterCompany}
+                  onChange={e => { setFilterCompany(e.target.value); setCompanyOpen(true); setCompanyActiveIndex(-1); }}
+                  onFocus={() => setCompanyOpen(true)}
+                  onKeyDown={e => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setCompanyOpen(true);
+                      setCompanyActiveIndex(i => Math.min(i + 1, companySuggestions.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setCompanyActiveIndex(i => Math.max(i - 1, -1));
+                    } else if (e.key === 'Enter' && companyActiveIndex >= 0) {
+                      e.preventDefault();
+                      setFilterCompany(companySuggestions[companyActiveIndex]);
+                      setCompanyOpen(false); setCompanyActiveIndex(-1);
+                    } else if (e.key === 'Escape') setCompanyOpen(false);
+                  }}
+                  placeholder="Any"
+                  autoComplete="off"
+                  className="input-plum"
+                />
+                {companyOpen && companySuggestions.length > 0 && (
+                  <Dropdown>
+                    {companySuggestions.map((c, i) => (
+                      <DropdownItem
+                        key={c}
+                        active={i === companyActiveIndex}
+                        onMouseDown={e => { e.preventDefault(); setFilterCompany(c); setCompanyOpen(false); }}
+                      >
+                        {c}
+                      </DropdownItem>
+                    ))}
+                  </Dropdown>
+                )}
+              </div>
+            </FilterField>
+
+            <FilterField label="Graduation Year">
+              <select
+                value={filterYear}
+                onChange={e => setFilterYear(e.target.value)}
+                className="input-plum"
+              >
+                <option value="">Any year</option>
+                {years.map(y => (
+                  <option key={y} value={y.toString()}>{y}</option>
+                ))}
+              </select>
+            </FilterField>
+
+            <FilterField label="City">
+              <div ref={cityContainerRef} className="relative">
+                <input
+                  type="text"
+                  value={filterCity}
+                  onChange={e => { setFilterCity(e.target.value); setCityOpen(true); setCityActiveIndex(-1); }}
+                  onFocus={() => setCityOpen(true)}
+                  onKeyDown={e => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setCityOpen(true);
+                      setCityActiveIndex(i => Math.min(i + 1, citySuggestions.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setCityActiveIndex(i => Math.max(i - 1, -1));
+                    } else if (e.key === 'Enter' && cityActiveIndex >= 0) {
+                      e.preventDefault();
+                      setFilterCity(citySuggestions[cityActiveIndex]);
+                      setCityOpen(false); setCityActiveIndex(-1);
+                    } else if (e.key === 'Escape') setCityOpen(false);
+                  }}
+                  placeholder="Any"
+                  autoComplete="off"
+                  className="input-plum"
+                />
+                {cityOpen && citySuggestions.length > 0 && (
+                  <Dropdown>
+                    {citySuggestions.map((c, i) => (
+                      <DropdownItem
+                        key={c}
+                        active={i === cityActiveIndex}
+                        onMouseDown={e => { e.preventDefault(); setFilterCity(c); setCityOpen(false); }}
+                      >
+                        {c}
+                      </DropdownItem>
+                    ))}
+                  </Dropdown>
+                )}
+              </div>
+            </FilterField>
+
+            <FilterField label="Sector">
+              <select
+                value={filterSector}
+                onChange={e => setFilterSector(e.target.value)}
+                className="input-plum"
+              >
+                <option value="">Any sector</option>
+                {sectors.map(s => (
+                  s ? <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option> : null
+                ))}
+              </select>
+            </FilterField>
+
+            <FilterField label="Interests">
+              <div ref={interestContainerRef} className="relative">
+                <input
+                  type="text"
+                  value={interestInput}
+                  onChange={e => { setInterestInput(e.target.value); setInterestOpen(true); setInterestActiveIndex(-1); }}
+                  onFocus={() => setInterestOpen(true)}
+                  onKeyDown={e => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setInterestOpen(true);
+                      setInterestActiveIndex(i => Math.min(i + 1, interestSuggestions.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setInterestActiveIndex(i => Math.max(i - 1, -1));
+                    } else if (e.key === 'Enter' && interestActiveIndex >= 0) {
+                      e.preventDefault();
+                      setFilterInterests(prev => [...prev, interestSuggestions[interestActiveIndex]]);
+                      setInterestInput(''); setInterestActiveIndex(-1);
+                    } else if (e.key === 'Escape') setInterestOpen(false);
+                    else if (e.key === 'Backspace' && interestInput === '' && filterInterests.length > 0) {
+                      setFilterInterests(prev => prev.slice(0, -1));
+                    }
+                  }}
+                  placeholder="Any"
+                  autoComplete="off"
+                  className="input-plum"
+                />
+                {interestOpen && interestSuggestions.length > 0 && (
+                  <Dropdown>
+                    {interestSuggestions.map((t, i) => (
+                      <DropdownItem
+                        key={t}
+                        active={i === interestActiveIndex}
+                        onMouseDown={e => { e.preventDefault(); setFilterInterests(prev => [...prev, t]); setInterestInput(''); }}
+                      >
+                        {t}
+                      </DropdownItem>
+                    ))}
+                  </Dropdown>
+                )}
+              </div>
+            </FilterField>
+          </div>
+
+          <div style={{ marginTop: '2rem' }}>
+            <FilterField label="Bio keyword">
               <input
                 type="text"
-                id="filter-bio"
                 value={filterBio}
-                onChange={(e) => setFilterBio(e.target.value)}
-                placeholder="Search by bio keyword or phrase..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={e => setFilterBio(e.target.value)}
+                placeholder="e.g. mentorship, startups, research"
+                className="input-plum"
               />
-            </div>
+            </FilterField>
+          </div>
 
-            {/* Clear Filters and View Toggle */}
-            <div className="flex items-center justify-between">
+          {(filterInterests.length > 0 || hasActiveFilters) && (
+            <div
+              className="flex items-center flex-wrap gap-2"
+              style={{
+                marginTop: '2rem',
+                paddingTop: '1.5rem',
+                borderTop: '1px solid var(--line)',
+              }}
+            >
+              {filterInterests.map(tag => (
+                <span key={tag} className="chip">
+                  {tag}
+                  <button
+                    onClick={() => setFilterInterests(prev => prev.filter(t => t !== tag))}
+                    style={{ background: 'none', border: 'none', padding: 0, marginLeft: 2, color: 'var(--plum-700)', cursor: 'pointer', lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-xs font-bold ml-auto"
+                  style={{ background: 'none', border: 'none', color: 'var(--plum-700)', cursor: 'pointer', textDecoration: 'underline' }}
                 >
                   Clear all filters
                 </button>
               )}
-              <div className="flex items-center space-x-2 ml-auto">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-                  title="Grid view"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-                  title="List view"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Results */}
-        <div>
-          <p className="text-sm text-gray-600 mb-4">
-            Showing {filteredProfiles.length} of {profiles.length} members
-          </p>
-
-          {filteredProfiles.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-              <p className="text-gray-500">No members found matching your criteria.</p>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="mt-4 text-blue-600 hover:text-blue-800"
-                >
-                  Clear filters to see all members
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-                : 'space-y-4'
-            }>
-              {filteredProfiles.map(profile => (
-                <ProfileCard key={profile.id} profile={profile} />
-              ))}
             </div>
           )}
+        </section>
+
+        <div
+          className="flex items-baseline justify-between"
+          style={{ marginBottom: '1.5rem' }}
+        >
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            Showing{' '}
+            <span className="font-bold" style={{ color: 'var(--plum-900)' }}>
+              {filteredProfiles.length}
+            </span>{' '}
+            of {profiles.length}
+          </p>
         </div>
-      </div>
+
+        {loading ? (
+          <div className="card p-16 text-center" style={{ color: 'var(--muted)' }}>
+            Loading directory…
+          </div>
+        ) : filteredProfiles.length === 0 ? (
+          <div className="card p-16 text-center">
+            <p style={{ color: 'var(--muted)' }}>No members found matching your criteria.</p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="mt-4 text-sm font-bold"
+                style={{ background: 'none', border: 'none', color: 'var(--plum-700)', cursor: 'pointer', textDecoration: 'underline' }}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="card-grid">
+            {filteredProfiles.map(profile => (
+              <ProfileCard key={profile.id} profile={profile} onOpen={setSelectedProfile} />
+            ))}
+          </div>
+        )}
+      </main>
+
+      <ProfileModal profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
     </div>
   );
 };
 
-export default DirectoryPage;
+const NavButton: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
+  <button
+    onClick={onClick}
+    className="text-base font-black px-3 py-1.5 rounded-md"
+    style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Lato, sans-serif' }}
+  >
+    {children}
+  </button>
+);
 
+const SegButton: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({ active, onClick, children }) => (
+  <button
+    onClick={onClick}
+    className="text-base font-black px-4 py-1.5 rounded-md"
+    style={{
+      background: active ? '#A597D2' : 'transparent',
+      color: active ? 'white' : '#A597D2',
+      border: 'none',
+      cursor: 'pointer',
+      fontFamily: 'Lato, sans-serif',
+    }}
+  >
+    {children}
+  </button>
+);
+
+const FilterField: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div>
+    <label className="field-label">{label}</label>
+    {children}
+  </div>
+);
+
+const Dropdown: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ul
+    className="absolute z-50 w-full mt-1 max-h-60 overflow-y-auto list-none"
+    style={{
+      background: 'white',
+      border: '1px solid var(--line)',
+      borderRadius: 8,
+      boxShadow: '0 8px 24px rgba(46, 26, 71, 0.12)',
+      padding: 0, margin: 0, top: '100%',
+    }}
+  >
+    {children}
+  </ul>
+);
+
+const DropdownItem: React.FC<{
+  active: boolean;
+  onMouseDown: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+}> = ({ active, onMouseDown, children }) => (
+  <li
+    onMouseDown={onMouseDown}
+    className="px-3 py-2 text-sm cursor-pointer"
+    style={{
+      background: active ? 'var(--plum-50)' : 'white',
+      color: active ? 'var(--plum-700)' : 'var(--ink)',
+      listStyle: 'none',
+    }}
+  >
+    {children}
+  </li>
+);
+
+export default DirectoryPage;

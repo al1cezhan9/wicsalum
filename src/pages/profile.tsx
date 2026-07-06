@@ -6,7 +6,6 @@ import TagSelector from '../components/TagSelector';
 import LocationAutocomplete from '../components/LocationAutocomplete';
 import Avatar from '../components/Avatar';
 
-
 const SECTORS = [
   'software', 'finance', 'consulting', 'healthcare', 'education',
   'government', 'nonprofit', 'research', 'other',
@@ -26,23 +25,13 @@ const ProfilePage: React.FC = () => {
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string>('');
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
+  useEffect(() => { loadProfile(); }, []);
 
   const loadProfile = async () => {
     const user = await getCurrentUser();
-    if (!user) {
-      navigate('/signup');
-      return;
-    }
-
+    if (!user) { navigate('/signup'); return; }
     const userProfile = await getUserProfile();
-    if (!userProfile) {
-      navigate('/register');
-      return;
-    }
-
+    if (!userProfile) { navigate('/register'); return; }
     setProfile(userProfile);
     const role = await getUserRole();
     setIsAdmin(role?.role === 'admin');
@@ -77,15 +66,9 @@ const ProfilePage: React.FC = () => {
     setEditing(true);
   };
 
-  const handleEditCancel = () => {
-    setEditing(false);
-    setEditError('');
-  };
-
   const handleSave = async () => {
     if (!profile) return;
     setEditError('');
-
     if (!editData.name?.trim()) { setEditError('Name is required.'); return; }
     if (!editData.current_company?.trim()) { setEditError('Company is required.'); return; }
     if (!editData.current_city?.trim()) { setEditError('City is required.'); return; }
@@ -131,12 +114,7 @@ const ProfilePage: React.FC = () => {
       .single();
 
     setSaving(false);
-
-    if (error) {
-      setEditError(`Error saving: ${error.message}`);
-      return;
-    }
-
+    if (error) { setEditError(`Error saving: ${error.message}`); return; }
     setProfile(data as UserProfile);
     setEditing(false);
   };
@@ -146,11 +124,11 @@ const ProfilePage: React.FC = () => {
     setSaving(true);
     const user = await getCurrentUser();
     if (user) {
-        const { error } = await supabase.from('users').delete().eq('id', user.id);
-        setSaving(false);
-        if (error) { setEditError(`Error deleting profile: ${error.message}`); return; }
-        await signOut();
-        navigate('/signup');
+      const { error } = await supabase.from('users').delete().eq('id', user.id);
+      setSaving(false);
+      if (error) { setEditError(`Error deleting profile: ${error.message}`); return; }
+      await signOut();
+      navigate('/signup');
     }
   };
 
@@ -161,11 +139,8 @@ const ProfilePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--paper)' }}>
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>Loading profile…</p>
       </div>
     );
   }
@@ -173,193 +148,179 @@ const ProfilePage: React.FC = () => {
   if (!profile) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-            <div className="flex items-center space-x-4">
-              {isAdmin && (
-                <button onClick={() => navigate('/admin')} className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                  Admin Panel
-                </button>
-              )}
-              <button onClick={() => navigate('/directory')} className="text-sm text-gray-700 hover:text-gray-900">
-                Directory
-              </button>
-              <button onClick={handleSignOut} className="text-sm text-gray-700 hover:text-gray-900">
-                Sign Out
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen" style={{ background: 'var(--paper)' }}>
+      <header
+        className="sticky top-0 z-40"
+        style={{ background: '#A597D2', borderBottom: '1px solid #8B6AD9' }}
+      >
+        <div
+          className="max-w-5xl mx-auto flex items-center justify-between"
+          style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem', paddingTop: '0.75rem', paddingBottom: '0.75rem' }}
+        >
+          <h1 className="font-black" style={{ fontSize: '1.4rem', color: '#FFFFFF' }}>My Profile</h1>
+          <nav className="flex items-center gap-1">
+            {isAdmin && <HeaderLink onClick={() => navigate('/admin')}>Admin</HeaderLink>}
+            <HeaderLink onClick={() => navigate('/directory')}>Directory</HeaderLink>
+            <HeaderLink onClick={handleSignOut}>Sign Out</HeaderLink>
+          </nav>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
+      <main
+        className="max-w-3xl mx-auto"
+        style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem', paddingTop: '3rem', paddingBottom: '3rem' }}
+      >
+        <div className="card" style={{ padding: '2.75rem' }}>
           {editing ? (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">Edit Profile</h2>
+            <div className="form-stack">
+              <h2 className="font-black" style={{ color: 'var(--plum-900)', fontSize: '1.4rem' }}>
+                Edit Profile
+              </h2>
 
               <div className="flex items-center gap-4">
-                <Avatar
-                  name={profile.name}
-                  profilePictureUrl={profilePicPreview || profile.profile_picture_url}
-                  size="lg"
+                <img
+                  src={profilePicPreview || profile.profile_picture_url || undefined}
+                  alt=""
+                  className="rounded-full object-cover"
+                  style={{
+                    width: 64, height: 64,
+                    minWidth: 64, minHeight: 64,
+                    maxWidth: 64, maxHeight: 64,
+                    border: '1px solid var(--line)',
+                    display: (profilePicPreview || profile.profile_picture_url) ? 'block' : 'none',
+                  }}
                 />
+                {!profilePicPreview && !profile.profile_picture_url && (
+                  <Avatar name={profile.name} profilePictureUrl={null} size="md" />
+                )}
                 <div>
-                  <label className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <label className="cursor-pointer text-sm font-bold" style={{ color: 'var(--plum-700)' }}>
                     {profile.profile_picture_url || profilePicPreview ? 'Change photo' : 'Upload photo'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfilePicChange}
-                      className="hidden"
-                    />
+                    <input type="file" accept="image/*" onChange={handleProfilePicChange} className="hidden" />
                   </label>
-                  <p className="text-xs text-gray-500 mt-1">JPEG, PNG. Max 5MB.</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>JPEG, PNG. Max 5MB.</p>
                 </div>
               </div>
 
-              {editError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-800">{editError}</p>
-                </div>
-              )}
+              {editError && <ErrorBox>{editError}</ErrorBox>}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-red-500">*</span></label>
+              <Field label="Full Name" required>
                 <input
                   type="text"
                   value={editData.name || ''}
                   onChange={e => setEditData(d => ({ ...d, name: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="input-plum"
                 />
-              </div>
+              </Field>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Company <span className="text-red-500">*</span></label>
+              <div className="grid grid-cols-1 md:grid-cols-2" style={{ columnGap: '1.5rem', rowGap: '2.25rem' }}>
+                <Field label="Current Company" required>
                   <input
                     type="text"
                     value={editData.current_company || ''}
                     onChange={e => setEditData(d => ({ ...d, current_company: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="input-plum"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Role/Title</label>
+                </Field>
+                <Field label="Role/Title">
                   <input
                     type="text"
                     value={editData.job_title || ''}
                     onChange={e => setEditData(d => ({ ...d, job_title: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="input-plum"
                   />
-                </div>
+                </Field>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">City/Location <span className="text-red-500">*</span></label>
+              <div className="grid grid-cols-1 md:grid-cols-2" style={{ columnGap: '1.5rem', rowGap: '2.25rem' }}>
+                <Field label="City/Location" required>
                   <LocationAutocomplete
                     value={editData.current_city || ''}
                     onChange={val => setEditData(d => ({ ...d, current_city: val }))}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+                </Field>
+                <Field label="Sector">
                   <select
                     value={editData.sector || ''}
                     onChange={e => setEditData(d => ({ ...d, sector: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="input-plum"
                   >
                     <option value="">Select sector</option>
                     {SECTORS.map(s => (
                       <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                     ))}
                   </select>
-                </div>
+                </Field>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bio <span className="text-red-500">*</span>
-                </label>
+              <Field label="Bio" required>
                 <textarea
                   value={editData.bio || ''}
                   onChange={e => setEditData(d => ({ ...d, bio: e.target.value }))}
                   rows={4}
                   maxLength={500}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="input-plum"
                 />
-                <p className="mt-1 text-sm text-gray-500">{(editData.bio || '').length}/500 characters</p>
-              </div>
+                <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+                  {(editData.bio || '').length}/500 characters
+                </p>
+              </Field>
 
               <TagSelector selected={editTags} onChange={setEditTags} />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <div className="grid grid-cols-1 md:grid-cols-2" style={{ columnGap: '1.5rem', rowGap: '2.25rem' }}>
+                <Field label="Email">
                   <input
                     type="email"
                     value={editData.email || ''}
                     onChange={e => setEditData(d => ({ ...d, email: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="input-plum"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                </Field>
+                <Field label="LinkedIn URL">
                   <input
                     type="url"
                     value={editData.linkedin_url || ''}
                     onChange={e => setEditData(d => ({ ...d, linkedin_url: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="input-plum"
                   />
-                </div>
+                </Field>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
+              <div className="flex gap-3 pt-4">
+                <button onClick={handleSave} disabled={saving} className="btn-primary">
+                  {saving ? 'Saving…' : 'Save Changes'}
                 </button>
-                <button
-                  onClick={handleEditCancel}
-                  disabled={saving}
-                  className="text-gray-700 px-6 py-2 rounded-md border border-gray-300 hover:bg-gray-50 transition disabled:opacity-50"
-                >
+                <button onClick={() => setEditing(false)} disabled={saving} className="btn-ghost">
                   Cancel
                 </button>
               </div>
 
-              <div className="pt-6 border-t">
+              <div className="pt-8 mt-4" style={{ borderTop: '1px solid var(--line)' }}>
                 {!confirmingDelete ? (
                   <button
                     onClick={() => setConfirmingDelete(true)}
                     disabled={saving}
-                    className="text-sm text-red-600 hover:text-red-800"
+                    className="text-sm font-bold"
+                    style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontFamily: 'Lato, sans-serif' }}
                   >
                     Delete my profile
                   </button>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-sm text-gray-700">Are you sure? This cannot be undone. You will be signed out.</p>
+                    <p className="text-sm" style={{ color: 'var(--ink)' }}>
+                      Are you sure? This cannot be undone. You will be signed out.
+                    </p>
                     <div className="flex gap-3">
                       <button
                         onClick={handleDelete}
                         disabled={saving}
-                        className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 text-sm transition disabled:opacity-50"
+                        className="text-sm font-bold px-4 py-2 rounded-lg"
+                        style={{ background: 'var(--danger)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Lato, sans-serif' }}
                       >
-                        {saving ? 'Deleting...' : 'Yes, delete my profile'}
+                        {saving ? 'Deleting…' : 'Yes, delete my profile'}
                       </button>
-                      <button
-                        onClick={() => setConfirmingDelete(false)}
-                        disabled={saving}
-                        className="text-gray-700 px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 text-sm transition disabled:opacity-50"
-                      >
+                      <button onClick={() => setConfirmingDelete(false)} disabled={saving} className="btn-ghost">
                         Cancel
                       </button>
                     </div>
@@ -368,93 +329,123 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
+            <div className="form-stack">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center" style={{ gap: '3rem' }}>
                   <Avatar name={profile.name} profilePictureUrl={profile.profile_picture_url} size="lg" />
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
-                    <p className="text-lg text-gray-600 mt-1">Class of {profile.graduation_year}</p>
+                    <h2
+                      className="font-black"
+                      style={{ color: 'var(--plum-900)', fontSize: '2rem', lineHeight: 1.1, margin: 0 }}
+                    >
+                      {profile.name}
+                    </h2>
+                    <p
+                      className="font-bold"
+                      style={{ color: 'var(--plum-500)', marginTop: 4 }}
+                    >
+                      Class of {profile.graduation_year}
+                    </p>
                   </div>
                 </div>
-                <button
-                  onClick={handleEditStart}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Edit
-                </button>
+                <button onClick={handleEditStart} className="btn-ghost">Edit</button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Current Company</h3>
-                  <p className="text-gray-900">{profile.current_company}</p>
-                  {profile.job_title && <p className="text-gray-600 mt-1">{profile.job_title}</p>}
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Location</h3>
-                  <p className="text-gray-900">{profile.current_city}</p>
-                </div>
+              <div
+                className="grid grid-cols-1 md:grid-cols-2"
+                style={{ columnGap: '1.5rem', rowGap: '2.25rem' }}
+              >
+                <ReadField label="Current Company">
+                  <p className="font-bold" style={{ color: 'var(--ink)', margin: 0 }}>
+                    {profile.current_company}
+                  </p>
+                  {profile.job_title && (
+                    <p className="text-sm" style={{ color: 'var(--muted)', marginTop: 2 }}>
+                      {profile.job_title}
+                    </p>
+                  )}
+                </ReadField>
+                <ReadField label="Location">{profile.current_city}</ReadField>
                 {profile.sector && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">Sector</h3>
-                    <p className="text-gray-900">{profile.sector.charAt(0).toUpperCase() + profile.sector.slice(1)}</p>
-                  </div>
+                  <ReadField label="Sector">
+                    {profile.sector.charAt(0).toUpperCase() + profile.sector.slice(1)}
+                  </ReadField>
                 )}
                 {profile.email && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">Email</h3>
-                    <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">{profile.email}</a>
-                  </div>
+                  <ReadField label="Email">
+                    <a href={`mailto:${profile.email}`} style={{ color: 'var(--plum-700)', fontWeight: 700 }}>
+                      {profile.email}
+                    </a>
+                  </ReadField>
                 )}
                 {profile.linkedin_url && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-1">LinkedIn</h3>
-                    <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">{profile.linkedin_url}</a>
-                  </div>
+                  <ReadField label="LinkedIn">
+                    <a
+                      href={profile.linkedin_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--plum-700)', fontWeight: 700 }}
+                    >
+                      LinkedIn Profile ↗
+                    </a>
+                  </ReadField>
                 )}
               </div>
 
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Bio</h3>
-                <p className="text-gray-900 whitespace-pre-wrap">{profile.bio}</p>
-              </div>
+              <ReadField label="Bio">
+                <p className="whitespace-pre-wrap" style={{ color: 'var(--ink)' }}>{profile.bio}</p>
+              </ReadField>
 
               {profile.tags && profile.tags.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Areas of Expertise / Interest</h3>
-                  <p className="text-gray-900">{profile.tags.join(', ')}</p>
-                </div>
+                <ReadField label="Areas of Interest">
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.tags.map(t => (
+                      <span key={t} className="chip">{t}</span>
+                    ))}
+                  </div>
+                </ReadField>
               )}
-
-              <div className="pt-6 border-t">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Information</h3>
-                <div className="space-y-2">
-                  {profile.email && (
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2">Email:</span>
-                      <a href={`mailto:${profile.email}`} className="text-blue-600 hover:text-blue-800">{profile.email}</a>
-                    </div>
-                  )}
-                  {profile.linkedin_url && (
-                    <div className="flex items-center">
-                      <span className="text-gray-600 mr-2">LinkedIn:</span>
-                      <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                        {profile.linkedin_url}
-                      </a>
-                    </div>
-                  )}
-                  {!profile.email && !profile.linkedin_url && (
-                    <p className="text-gray-500 text-sm">No contact information provided</p>
-                  )}
-                </div>
-              </div>
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
+
+const HeaderLink: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
+  <button
+    onClick={onClick}
+    className="text-base font-black px-3 py-1.5 rounded-md"
+    style={{ background: 'transparent', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Lato, sans-serif' }}
+  >
+    {children}
+  </button>
+);
+
+const Field: React.FC<{ label: string; required?: boolean; children: React.ReactNode }> = ({ label, required, children }) => (
+  <div>
+    <label className="field-label">
+      {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
+    </label>
+    {children}
+  </div>
+);
+
+const ReadField: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div>
+    <div className="field-label">{label}</div>
+    <div style={{ color: 'var(--ink)' }}>{children}</div>
+  </div>
+);
+
+const ErrorBox: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div
+    className="p-3 rounded-lg text-sm"
+    style={{ background: '#FDECEC', border: '1px solid #F5CACA', color: '#8A1F1F' }}
+  >
+    {children}
+  </div>
+);
 
 export default ProfilePage;

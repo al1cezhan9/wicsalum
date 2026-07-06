@@ -23,9 +23,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -78,18 +76,29 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
         placeholder={placeholder}
         required={required}
         autoComplete="off"
-        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="input-plum"
       />
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-50 rounded-md mt-1 max-h-60 overflow-y-scroll list-none" style={{ backgroundColor: 'white', border: '1px solid #d1d5db', minWidth: '100%', width: 'max-content', top: '100%', bottom: 'auto' }}>
+        <ul
+          className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto list-none"
+          style={{
+            background: 'white',
+            border: '1px solid var(--line)',
+            borderRadius: 8,
+            boxShadow: '0 8px 24px rgba(46, 26, 71, 0.12)',
+            padding: 0, margin: 0, top: '100%',
+          }}
+        >
           {suggestions.map((loc, i) => (
             <li
               key={loc}
               onMouseDown={() => handleSelect(loc)}
-              className={`px-4 py-2 cursor-pointer text-sm ${
-                i === activeIndex ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-              }`}
-              style={{ borderBottom: i < suggestions.length - 1 ? '1px solid #e5e7eb' : 'none', listStyle: 'none' }}
+              className="px-3 py-2 text-sm cursor-pointer"
+              style={{
+                background: i === activeIndex ? 'var(--plum-50)' : 'white',
+                color: i === activeIndex ? 'var(--plum-700)' : 'var(--ink)',
+                listStyle: 'none',
+              }}
             >
               {loc}
             </li>

@@ -1,48 +1,58 @@
 import React from 'react';
 
-const COLORS = [
-  'bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-amber-500',
-  'bg-red-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500',
+const AVATAR_COLORS = [
+  '#2E1A47', '#4F2A94', '#673AB7', '#8B6AD9',
+  '#5E3AA0', '#7B5AC4', '#3B2170', '#A388DE',
 ];
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0][0].toUpperCase();
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '';
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function getColor(name: string): string {
   const sum = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return COLORS[sum % COLORS.length];
+  return AVATAR_COLORS[sum % AVATAR_COLORS.length];
 }
+
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
+const SIZES: Record<Size, { px: number; font: string }> = {
+  xs: { px: 32,  font: '0.7rem'  },
+  sm: { px: 44,  font: '0.85rem' },
+  md: { px: 72,  font: '1.1rem'  },
+  lg: { px: 112, font: '1.6rem'  },
+  xl: { px: 160, font: '2.4rem'  },
+};
 
 interface AvatarProps {
   name: string;
   profilePictureUrl?: string | null;
-  size?: 'sm' | 'lg';
+  size?: Size;
 }
 
 const Avatar: React.FC<AvatarProps> = ({ name, profilePictureUrl, size = 'sm' }) => {
-  const px = size === 'sm' ? 128 : 320;
-  const textClass = size === 'sm' ? 'text-xs' : 'text-xl';
-  const sizeStyle: React.CSSProperties = { width: px, height: px, minWidth: px, minHeight: px };
+  const { px, font } = SIZES[size];
+  const box: React.CSSProperties = {
+    width: px, height: px, minWidth: px, minHeight: px, fontSize: font,
+  };
 
   if (profilePictureUrl) {
     return (
-      <div className="rounded-full overflow-hidden flex-shrink-0" style={sizeStyle}>
-        <img
-          src={profilePictureUrl}
-          alt={name}
-          className="w-full h-full object-cover"
-        />
+      <div
+        className="rounded-full overflow-hidden flex-shrink-0"
+        style={{ ...box, border: '1px solid var(--line)' }}
+      >
+        <img src={profilePictureUrl} alt={name} className="w-full h-full object-cover" />
       </div>
     );
   }
 
   return (
     <div
-      className={`rounded-full overflow-hidden ${getColor(name)} flex items-center justify-center text-white font-semibold flex-shrink-0 ${textClass}`}
-      style={sizeStyle}
+      className="rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
+      style={{ ...box, backgroundColor: getColor(name) }}
     >
       {getInitials(name)}
     </div>
