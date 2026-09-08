@@ -53,23 +53,20 @@ export default function TagSelector({ selected, onChange }: Props) {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Areas of Expertise / Interest
-      </label>
+      <label className="field-label">Areas of Expertise / Interest</label>
 
-      {/* Selected chips */}
       {selected.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {selected.map(tag => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full"
-            >
+            <span key={tag} className="chip">
               {tag}
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="hover:text-purple-900 leading-none"
+                style={{
+                  background: 'none', border: 'none', padding: 0, marginLeft: 2,
+                  color: 'var(--plum-700)', cursor: 'pointer', lineHeight: 1,
+                }}
               >
                 ×
               </button>
@@ -78,7 +75,6 @@ export default function TagSelector({ selected, onChange }: Props) {
         </div>
       )}
 
-      {/* Dropdown */}
       <div ref={containerRef} className="relative">
         <input
           ref={inputRef}
@@ -87,17 +83,30 @@ export default function TagSelector({ selected, onChange }: Props) {
           onChange={e => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder="Search or type a custom tag..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+          className="input-plum"
         />
 
         {open && (filtered.length > 0 || canAddCustom) && (
-          <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+          <ul
+            className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto list-none"
+            style={{
+              background: 'white',
+              border: '1px solid var(--line)',
+              borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(46, 26, 71, 0.12)',
+              padding: 0, margin: 0,
+            }}
+          >
             {filtered.map(tag => (
               <li key={tag}>
                 <button
                   type="button"
                   onMouseDown={e => { e.preventDefault(); addTag(tag); }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-700"
+                  className="w-full text-left px-3 py-2 text-sm"
+                  style={{
+                    background: 'white', border: 'none', color: 'var(--ink)',
+                    cursor: 'pointer', fontFamily: 'Lato, sans-serif',
+                  }}
                 >
                   {tag}
                 </button>
@@ -108,7 +117,15 @@ export default function TagSelector({ selected, onChange }: Props) {
                 <button
                   type="button"
                   onMouseDown={e => { e.preventDefault(); addTag(trimmed); }}
-                  className="w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 font-medium border-t border-gray-100"
+                  className="w-full text-left px-3 py-2 text-sm font-bold"
+                  style={{
+                    background: 'var(--plum-50)',
+                    color: 'var(--plum-700)',
+                    borderTop: '1px solid var(--line)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'Lato, sans-serif',
+                  }}
                 >
                   + Add "{trimmed}"
                 </button>

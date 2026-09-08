@@ -21,6 +21,8 @@ interface ProfileFormData {
   profile_picture_url: string;
 }
 
+const PREVIEW_PX = 112;
+
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState<RegistrationStep>('verification');
@@ -45,69 +47,37 @@ const RegisterPage: React.FC = () => {
     profile_picture_url: '',
   });
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  useEffect(() => { checkAuthStatus(); }, []);
 
   const checkAuthStatus = async () => {
     const user = await getCurrentUser();
-    if (!user) {
-      navigate('/signup');
-      return;
-    }
-
-    // Check if profile already exists
+    if (!user) { navigate('/signup'); return; }
     const profile = await getUserProfile();
-    if (profile) {
-      navigate('/directory');
-    }
+    if (profile) navigate('/directory');
   };
 
-  const handleVerificationSubmit = async (e: React.FormEvent) => {
+  const handleVerificationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!graduationYear) {
-      setError('Please enter your graduation year.');
-      return;
-    }
-
+    if (!graduationYear) { setError('Please enter your graduation year.'); return; }
     const year = parseInt(graduationYear);
     const currentYear = new Date().getFullYear();
     if (isNaN(year) || year < 1900 || year > currentYear + 10) {
-      setError('Please enter a valid graduation year.');
-      return;
+      setError('Please enter a valid graduation year.'); return;
     }
-
-    if (!isAlumni) {
-      setError('Please confirm that you are a Columbia Women in CS member.');
-      return;
-    }
-
+    if (!isAlumni) { setError('Please confirm that you are a Columbia Women in CS member.'); return; }
     setFormData(prev => ({ ...prev, graduation_year: graduationYear }));
     setStep('profile');
   };
 
-  const handleProfileChange = (field: keyof ProfileFormData, value: any) => {
+  const handleProfileChange = (field: keyof ProfileFormData, value: any) =>
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
 
   const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Please upload an image file (JPEG, PNG, etc.).');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Profile picture must be less than 5MB.');
-      return;
-    }
-
+    if (!file.type.startsWith('image/')) { setError('Please upload an image file.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('Profile picture must be less than 5MB.'); return; }
     setProfilePicFile(file);
     setProfilePicPreview(URL.createObjectURL(file));
     setError('');
@@ -115,119 +85,72 @@ const RegisterPage: React.FC = () => {
 
   const uploadProfilePicture = async (userId: string): Promise<string | null> => {
     if (!profilePicFile) return null;
-
     const fileExt = profilePicFile.name.split('.').pop();
     const filePath = `${userId}/profile.${fileExt}`;
-
     const { error: uploadError } = await supabase.storage
       .from('profile-pictures')
       .upload(filePath, profilePicFile, { upsert: true });
-
     if (uploadError) {
       console.error('Upload error:', uploadError);
       setError(`Upload error: ${uploadError.message}`);
       return null;
     }
-
-    const { data } = supabase.storage
-      .from('profile-pictures')
-      .getPublicUrl(filePath);
-
+    const { data } = supabase.storage.from('profile-pictures').getPublicUrl(filePath);
     return data.publicUrl;
   };
 
-
   const validateProfileForm = (): boolean => {
-    if (!formData.name.trim()) {
-      setError('Name is required.');
-      return false;
-    }
-    if (!formData.current_company.trim()) {
-      setError('Current company is required.');
-      return false;
-    }
-    if (!formData.current_city.trim()) {
-      setError('Current city/location is required.');
-      return false;
-    }
-    if (formData.bio.length > 500) {
-      setError('Bio must be 500 characters or less.');
-      return false;
-    }
-    if (!formData.linkedin_url.trim()) {
-      setError('LinkedIn URL is required.');
-      return false;
-    }
-    if (!formData.sector) {
-      setError('Please select a sector.');
-      return false;
-    }
+    if (!formData.name.trim()) { setError('Name is required.'); return false; }
+    if (!formData.current_company.trim()) { setError('Current company is required.'); return false; }
+    if (!formData.current_city.trim()) { setError('Current city/location is required.'); return false; }
+    if (formData.bio.length > 500) { setError('Bio must be 500 characters or less.'); return false; }
+    if (!formData.linkedin_url.trim()) { setError('LinkedIn URL is required.'); return false; }
+    if (!formData.sector) { setError('Please select a sector.'); return false; }
     if (formData.sector === 'other' && !formData.sector_other.trim()) {
-      setError('Please describe your sector.');
-      return false;
+      setError('Please describe your sector.'); return false;
     }
     return true;
   };
 
-  const handleProfileSubmit = async (e: React.FormEvent) => {
+  const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!validateProfileForm()) {
-      return;
-    }
-
+    if (!validateProfileForm()) return;
     setStep('confirmation');
   };
 
   const handleConfirmationSubmit = async () => {
     setLoading(true);
     setError('');
-
     try {
       const user = await getCurrentUser();
-      if (!user) {
-        setError('You must be logged in to create a profile.');
-        setLoading(false);
-        return;
-      }
+      if (!user) { setError('You must be logged in to create a profile.'); setLoading(false); return; }
 
-      // Ensure user record exists in public.users table
       const { error: ensureError } = await supabase.rpc('ensure_user_exists');
-
       if (ensureError) {
-        // Try direct insert as fallback (with INSERT policy)
         const { error: userError } = await supabase
           .from('users')
-          .insert({
-            id: user.id,
-            email: user.email,
-            role: 'non-admin'
-          })
+          .insert({ id: user.id, email: user.email, role: 'non-admin' })
           .select()
           .single();
-
         if (userError) {
           setError(`Error creating user record: ${userError.message}`);
-          setLoading(false);
-          return;
+          setLoading(false); return;
         }
       }
 
-      // Upload profile picture if provided
       let profilePictureUrl: string | null = null;
       if (profilePicFile) {
         profilePictureUrl = await uploadProfilePicture(user.id);
         if (!profilePictureUrl) {
           setError('Failed to upload profile picture. Please try again.');
-          setLoading(false);
-          return;
+          setLoading(false); return;
         }
       }
 
       const sectorValue = formData.sector === 'other' ? formData.sector_other.trim() : formData.sector;
 
-      const { data, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('profiles')
         .insert({
           user_id: user.id,
@@ -246,361 +169,343 @@ const RegisterPage: React.FC = () => {
         .select()
         .single();
 
-      if (insertError) {
-        setError(`Error creating profile: ${insertError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      // Success! Redirect to profile page
+      if (insertError) { setError(`Error creating profile: ${insertError.message}`); setLoading(false); return; }
       navigate('/profile');
-    } catch (err: any) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   };
 
+  const stepNum = step === 'verification' ? 1 : step === 'profile' ? 2 : 3;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen" style={{ background: 'var(--paper)', padding: '4rem 1.5rem' }}>
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Columbia Women in CS Member Registration
+        <div className="card" style={{ padding: '2.75rem' }}>
+          <div className="mb-10">
+            <h1 className="font-black" style={{ color: 'var(--plum-900)', fontSize: '1.7rem' }}>
+              Member Registration
             </h1>
-            <div className="flex items-center space-x-2 mb-4">
-              <div className={`flex-1 h-2 rounded ${step === 'verification' ? 'bg-blue-600' : 'bg-green-600'}`}></div>
-              <div className={`flex-1 h-2 rounded ${step === 'profile' ? 'bg-blue-600' : step === 'confirmation' ? 'bg-green-600' : 'bg-gray-300'}`}></div>
-              <div className={`flex-1 h-2 rounded ${step === 'confirmation' ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+            <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>Columbia Women in CS</p>
+
+            <div className="mt-8 flex items-center gap-2">
+              {[1, 2, 3].map(n => (
+                <div
+                  key={n}
+                  className="flex-1 h-1.5 rounded-full"
+                  style={{ background: n <= stepNum ? 'var(--plum-700)' : 'var(--line)' }}
+                />
+              ))}
             </div>
-            <p className="text-sm text-gray-600">
-              Step {step === 'verification' ? '1' : step === 'profile' ? '2' : '3'} of 3
+            <p
+              className="text-xs mt-3 font-bold uppercase"
+              style={{ color: 'var(--plum-500)', letterSpacing: '0.08em' }}
+            >
+              Step {stepNum} of 3
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-sm text-red-800">{error}</p>
+            <div
+              className="mb-8 p-3 rounded-lg text-sm"
+              style={{ background: '#FDECEC', border: '1px solid #F5CACA', color: '#8A1F1F' }}
+            >
+              {error}
             </div>
           )}
 
-          {/* Step 1: Verification */}
           {step === 'verification' && (
-            <form onSubmit={handleVerificationSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="graduation_year" className="block text-sm font-medium text-gray-700 mb-2">
-                  Graduation Year <span className="text-red-500">*</span>
-                </label>
+            <form onSubmit={handleVerificationSubmit} className="form-stack">
+              <FormField label="Graduation Year" required>
                 <input
                   type="number"
-                  id="graduation_year"
                   value={graduationYear}
-                  onChange={(e) => setGraduationYear(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={e => setGraduationYear(e.target.value)}
+                  className="input-plum"
                   placeholder="e.g., 2020"
                   min="1900"
                   max={new Date().getFullYear() + 10}
                   required
                 />
-              </div>
-
-              <div className="flex items-start">
+              </FormField>
+              <label className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  id="is_alumni"
                   checked={isAlumni}
-                  onChange={(e) => setIsAlumni(e.target.checked)}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  onChange={e => setIsAlumni(e.target.checked)}
+                  className="mt-1"
+                  style={{ accentColor: 'var(--plum-700)' }}
                   required
                 />
-                <label htmlFor="is_alumni" className="ml-2 text-sm text-gray-700">
-                  I confirm that I am a Columbia Women in CS member <span className="text-red-500">*</span>
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
-              >
-                Continue
-              </button>
+                <span className="text-sm" style={{ color: 'var(--ink)' }}>
+                  I confirm that I am a Columbia Women in CS member{' '}
+                  <span style={{ color: 'var(--danger)' }}>*</span>
+                </span>
+              </label>
+              <button type="submit" className="btn-primary w-full">Continue</button>
             </form>
           )}
 
-          {/* Step 2: Profile Creation */}
           {step === 'profile' && (
-            <form onSubmit={handleProfileSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
+            <form onSubmit={handleProfileSubmit} className="form-stack">
+              <FormField label="Full Name" required>
                 <input
                   type="text"
-                  id="name"
                   value={formData.name}
-                  onChange={(e) => handleProfileChange('name', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={e => handleProfileChange('name', e.target.value)}
+                  className="input-plum"
                   required
                 />
-              </div>
+              </FormField>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="current_company" className="block text-sm font-medium text-gray-700 mb-2">
-                    Current Company <span className="text-red-500">*</span>
-                  </label>
+              <div className="grid grid-cols-1 md:grid-cols-2" style={{ columnGap: '1.5rem', rowGap: '2.25rem' }}>
+                <FormField label="Current Company" required>
                   <input
                     type="text"
-                    id="current_company"
                     value={formData.current_company}
-                    onChange={(e) => handleProfileChange('current_company', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onChange={e => handleProfileChange('current_company', e.target.value)}
+                    className="input-plum"
                     required
                   />
-                </div>
-                <div>
-                    <label htmlFor="job_title" className="block text-sm font-medium text-gray-700 mb-2">
-                      Current Role/Title (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      id="job_title"
-                      value={formData.job_title}
-                      onChange={(e) => handleProfileChange('job_title', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                </FormField>
+                <FormField label="Role/Title">
+                  <input
+                    type="text"
+                    value={formData.job_title}
+                    onChange={e => handleProfileChange('job_title', e.target.value)}
+                    className="input-plum"
                   />
-                </div>
+                </FormField>
               </div>
 
-              <div>
-                <label htmlFor="current_city" className="block text-sm font-medium text-gray-700 mb-2">
-                  Current City/Location <span className="text-red-500">*</span>
-                </label>
+              <FormField label="Current City/Location" required>
                 <LocationAutocomplete
-                  id="current_city"
                   value={formData.current_city}
-                  onChange={(val) => handleProfileChange('current_city', val)}
+                  onChange={val => handleProfileChange('current_city', val)}
                   required
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
-                  Brief Bio (2-3 sentences, max 500 characters)<span className="text-red-500">*</span>
-                </label>
-                Suggestions: other education, past work experience, interests, hobbies, other preferred methods of contact
+              <FormField label="Brief Bio (2-3 sentences)" required>
+                <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>
+                  Suggestions: education, past work, interests, hobbies, other preferred methods of contact.
+                </p>
                 <textarea
-                  id="bio"
                   value={formData.bio}
-                  onChange={(e) => handleProfileChange('bio', e.target.value)}
+                  onChange={e => handleProfileChange('bio', e.target.value)}
                   rows={4}
                   maxLength={500}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="input-plum"
                   placeholder="Tell us a bit about yourself..."
                 />
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
                   {formData.bio.length}/500 characters
                 </p>
-              </div>
+              </FormField>
 
               <TagSelector selected={selectedTags} onChange={setSelectedTags} />
 
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address (Optional)
-                </label>
+              <FormField label="Email">
                 <input
                   type="email"
-                  id="email"
                   value={formData.email}
-                  onChange={(e) => handleProfileChange('email', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={e => handleProfileChange('email', e.target.value)}
+                  className="input-plum"
                   placeholder="your.email@example.com"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label htmlFor="linkedin_url" className="block text-sm font-medium text-gray-700 mb-2">
-                  LinkedIn URL <span className="text-red-500">*</span>
-                </label>
+              <FormField label="LinkedIn URL" required>
                 <input
                   type="url"
-                  id="linkedin_url"
                   value={formData.linkedin_url}
-                  onChange={(e) => handleProfileChange('linkedin_url', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onChange={e => handleProfileChange('linkedin_url', e.target.value)}
+                  className="input-plum"
                   placeholder="https://linkedin.com/in/yourprofile"
                   required
                 />
-              </div>
+              </FormField>
 
-              {/* Sector */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sector <span className="text-red-500">*</span>
-                </label>
-                <div className="space-y-2">
-                  {['Industry', 'Academia'].map((option) => (
-                    <label key={option} className="flex items-center">
+              <FormField label="Sector" required>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {['Industry', 'Academia'].map(option => (
+                    <label key={option} className="radio-row">
                       <input
                         type="radio"
                         name="sector"
                         value={option.toLowerCase()}
                         checked={formData.sector === option.toLowerCase()}
-                        onChange={(e) => {
+                        onChange={e => {
                           handleProfileChange('sector', e.target.value);
                           handleProfileChange('sector_other', '');
                         }}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        style={{ accentColor: 'var(--plum-700)' }}
                       />
-                      <span className="ml-2 text-sm text-gray-700">{option}</span>
+                      <span className="text-sm" style={{ color: 'var(--ink)' }}>{option}</span>
                     </label>
                   ))}
-                  <label className="flex items-center">
+                  <label className="radio-row">
                     <input
                       type="radio"
                       name="sector"
                       value="other"
                       checked={formData.sector === 'other'}
-                      onChange={(e) => handleProfileChange('sector', e.target.value)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      onChange={e => handleProfileChange('sector', e.target.value)}
+                      style={{ accentColor: 'var(--plum-700)' }}
                     />
-                    <span className="ml-2 text-sm text-gray-700">Self-Describe</span>
+                    <span className="text-sm" style={{ color: 'var(--ink)' }}>Self-Describe</span>
                   </label>
                   {formData.sector === 'other' && (
                     <input
                       type="text"
                       value={formData.sector_other}
-                      onChange={(e) => handleProfileChange('sector_other', e.target.value)}
-                      className="ml-6 w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      onChange={e => handleProfileChange('sector_other', e.target.value)}
+                      className="input-plum"
+                      style={{ marginTop: '0.5rem', marginLeft: '1.5rem', width: 'calc(100% - 1.5rem)' }}
                       placeholder="Please describe your sector"
                       required
                     />
                   )}
                 </div>
-              </div>
+              </FormField>
 
-              {/* Profile Picture Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Profile Picture (Optional)
-                </label>
-                <div>
-                  <input
-                    type="file"
-                    id="profile_picture"
-                    accept="image/*"
-                    onChange={handleProfilePicChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              <FormField label="Profile Picture">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePicChange}
+                  className="block w-full text-sm"
+                  style={{ color: 'var(--muted)' }}
+                />
+                <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--muted)' }}>
+                  JPEG, PNG, or GIF. Max 5MB.
+                </p>
+                {profilePicPreview && (
+                  <img
+                    src={profilePicPreview}
+                    alt="Profile preview"
+                    className="rounded-full object-cover"
+                    style={{
+                      marginTop: '1rem',
+                      width: PREVIEW_PX,
+                      height: PREVIEW_PX,
+                      minWidth: PREVIEW_PX,
+                      minHeight: PREVIEW_PX,
+                      maxWidth: PREVIEW_PX,
+                      maxHeight: PREVIEW_PX,
+                      border: '1px solid var(--line)',
+                    }}
                   />
-                  <p className="mt-1 text-xs text-gray-500">JPEG, PNG, or GIF. Max 5MB.</p>
-                </div>
-                <div className="mt-3">
-                  {profilePicPreview && (
-                    <img
-                      src={profilePicPreview}
-                      alt="Profile preview"
-                      className="w-28 h-28 min-w-[7rem] min-h-[7rem] max-w-[7rem] max-h-[7rem] rounded-full object-cover border border-gray-200"
-                    />
-                  )}
-                </div>
-              </div>
+                )}
+              </FormField>
 
-              <div className="flex space-x-4">
-                <button
-                  type="button"
-                  onClick={() => setStep('verification')}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition"
-                >
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setStep('verification')} className="btn-ghost flex-1">
                   Back
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition"
-                >
-                  Review Profile
-                </button>
+                <button type="submit" className="btn-primary flex-1">Review Profile</button>
               </div>
             </form>
           )}
 
-          {/* Step 3: Confirmation */}
           {step === 'confirmation' && (
-            <div className="space-y-6">
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h2 className="text-xl font-semibold mb-4">Profile Preview</h2>
-                <div className="space-y-3 text-sm">
-                  {profilePicPreview && (
-                    <div className="flex justify-center mb-4">
-                      <img
-                        src={profilePicPreview}
-                        alt="Profile"
-                        className="w-24 h-24 min-w-[6rem] min-h-[6rem] max-w-[6rem] max-h-[6rem] rounded-full object-cover border border-gray-200"
-                      />
+            <div className="space-y-8">
+              <div
+                className="rounded-lg"
+                style={{
+                  background: 'var(--plum-50)',
+                  border: '1px solid var(--plum-100)',
+                  paddingLeft: '3.25rem',
+                  paddingRight: '3.25rem',
+                  paddingTop: '2.5rem',
+                  paddingBottom: '2.5rem',
+                }}
+              >
+                <h2 className="font-black mb-6" style={{ color: 'var(--plum-900)', fontSize: '1.15rem' }}>
+                  Profile Preview
+                </h2>
+                {profilePicPreview && (
+                  <div className="flex justify-center mb-4">
+                    <img
+                      src={profilePicPreview}
+                      alt="Profile"
+                      className="rounded-full object-cover"
+                      style={{
+                        width: PREVIEW_PX,
+                        height: PREVIEW_PX,
+                        minWidth: PREVIEW_PX,
+                        minHeight: PREVIEW_PX,
+                        maxWidth: PREVIEW_PX,
+                        maxHeight: PREVIEW_PX,
+                        border: '1px solid var(--plum-100)',
+                      }}
+                    />
+                  </div>
+                )}
+                <div
+                  className="text-sm"
+                  style={{ color: 'var(--ink)', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                >
+                  <PreviewRow k="Name" v={formData.name} />
+                  <PreviewRow k="Graduation Year" v={formData.graduation_year} />
+                  <PreviewRow
+                    k="Sector"
+                    v={
+                      formData.sector === 'other'
+                        ? formData.sector_other
+                        : formData.sector.charAt(0).toUpperCase() + formData.sector.slice(1)
+                    }
+                  />
+                  <PreviewRow
+                    k="Current Company"
+                    v={`${formData.current_company}${formData.job_title ? ` — ${formData.job_title}` : ''}`}
+                  />
+                  <PreviewRow k="Location" v={formData.current_city} />
+                  <div>
+                    <div className="font-bold" style={{ color: 'var(--plum-500)', marginBottom: 4 }}>
+                      Bio
                     </div>
-                  )}
-                  <div>
-                    <span className="font-medium">Name:</span> {formData.name}
-                  </div>
-                  <div>
-                    <span className="font-medium">Graduation Year:</span> {formData.graduation_year}
-                  </div>
-                  <div>
-                    <span className="font-medium">Sector:</span> {formData.sector === 'other' ? formData.sector_other : formData.sector.charAt(0).toUpperCase() + formData.sector.slice(1)}
-                  </div>
-                  <div>
-                    <span className="font-medium">Current Company:</span> {formData.current_company}
-                    {formData.job_title && ` - ${formData.job_title}`}
-                  </div>
-                  <div>
-                    <span className="font-medium">Location:</span> {formData.current_city}
-                  </div>
-                  <div>
-                    <span className="font-medium">Bio:</span>
-                    <p className="mt-1 text-gray-700">{formData.bio}</p>
+                    <p style={{ margin: 0 }}>{formData.bio}</p>
                   </div>
                   {selectedTags.length > 0 && (
                     <div>
-                      <span className="font-medium">Tags:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {selectedTags.map(tag => (
-                          <span key={tag} className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full">{tag}</span>
+                      <div className="font-bold" style={{ color: 'var(--plum-500)', marginBottom: 6 }}>
+                        Tags
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedTags.map(t => (
+                          <span key={t} className="chip">{t}</span>
                         ))}
                       </div>
                     </div>
                   )}
                   {(formData.email || formData.linkedin_url) && (
                     <div>
-                      <span className="font-medium">Contact:</span>
-                      <div className="mt-1 space-y-1">
+                      <div className="font-bold" style={{ color: 'var(--plum-500)', marginBottom: 4 }}>
+                        Contact
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {formData.email && <div>Email: {formData.email}</div>}
-                        {formData.linkedin_url && <div>LinkedIn: {formData.linkedin_url}</div>}
+                        {formData.linkedin_url && (
+                          <div style={{ wordBreak: 'break-all' }}>LinkedIn: {formData.linkedin_url}</div>
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                <p className="text-sm text-blue-800">
-                  Your profile will be visible in the directory immediately after submission.
-                </p>
-              </div>
+              <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                Your profile will be visible in the directory immediately after submission.
+              </p>
 
-              <div className="flex space-x-4">
-                <button
-                  type="button"
-                  onClick={() => setStep('profile')}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition"
-                >
+              <div className="flex gap-3">
+                <button onClick={() => setStep('profile')} className="btn-ghost flex-1">
                   Back to Edit
                 </button>
-                <button
-                  onClick={handleConfirmationSubmit}
-                  disabled={loading}
-                  className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Submitting...' : 'Submit Profile'}
+                <button onClick={handleConfirmationSubmit} disabled={loading} className="btn-primary flex-1">
+                  {loading ? 'Submitting…' : 'Submit Profile'}
                 </button>
               </div>
             </div>
@@ -611,5 +516,23 @@ const RegisterPage: React.FC = () => {
   );
 };
 
-export default RegisterPage;
+const FormField: React.FC<{ label: string; required?: boolean; children: React.ReactNode }> = ({
+  label,
+  required,
+  children,
+}) => (
+  <div>
+    <label className="field-label">
+      {label} {required && <span style={{ color: 'var(--danger)' }}>*</span>}
+    </label>
+    {children}
+  </div>
+);
 
+const PreviewRow: React.FC<{ k: string; v: string }> = ({ k, v }) => (
+  <div>
+    <span className="font-bold" style={{ color: 'var(--plum-500)' }}>{k}:</span> {v}
+  </div>
+);
+
+export default RegisterPage;

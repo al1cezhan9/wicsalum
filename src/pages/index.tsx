@@ -6,37 +6,24 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkAuthAndRedirect();
+    (async () => {
+      const user = await getCurrentUser();
+      if (!user) { navigate('/signup'); return; }
+      const role = await getUserRole();
+      if (role && role.role === 'admin') { navigate('/admin'); return; }
+      const profile = await getUserProfile();
+      navigate(profile ? '/directory' : '/register');
+    })();
   }, []);
 
-  const checkAuthAndRedirect = async () => {
-    const user = await getCurrentUser();
-    if (!user) {
-      navigate('/signup');
-      return;
-    }
-
-    // Check if user is admin
-    const role = await getUserRole();
-    if (role && role.role === 'admin') {
-      navigate('/admin');
-      return;
-    }
-
-    // Check if profile exists
-    const profile = await getUserProfile();
-    if (profile) {
-      navigate('/directory');
-    } else {
-      navigate('/register');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--paper)' }}>
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading...</p>
+        <div
+          className="inline-block w-10 h-10 rounded-full animate-spin"
+          style={{ border: '3px solid var(--plum-100)', borderTopColor: 'var(--plum-700)' }}
+        />
+        <p className="mt-3 text-sm" style={{ color: 'var(--muted)' }}>Loading…</p>
       </div>
     </div>
   );
